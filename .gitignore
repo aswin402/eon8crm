@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing and coverage
+coverage/
+
+# Next.js build output
+.next/
+out/
+
+# Production build artifacts
+dist/
+build/
+
+# Environment variable files (NEVER commit secrets)
+.env
+.env*.local
+.env.production
+.env.staging
+!.env.example
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun.lockb
+*.log
+
+# OS & Editor files
+.DS_Store
+*.pem
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript cache
+*.tsbuildinfo
+next-env.d.ts
+
+# Turbopack / Vercel
+.turbo/
+.vercel/

@@ -1,0 +1,35 @@
+{
+  "project": {
+    "name": "eon8crm",
+    "description": "EON8 Custom CRM & ERP Business Management Platform",
+    "runtime": "bun",
+    "package_manager": "bun",
+    "architecture_pattern": "modular-monorepo"
+  },
+  "agent_instructions": {
+    "docs_directory": "onpkg_docs/",
+    "active_skills": [
+      "coreidea.md",
+      "prd.md",
+      "design.md",
+      "spec.md",
+      "implementationplan.md",
+      "todo.md"
+    ]
+  },
+  "workspaces": {
+    "frontend": {
+      "path": "apps/web",
+      "framework": "nextjs-16",
+      "styling": "tailwind-v4",
+      "components": "shadcn-ui"
+    },
+    "backend": {
+      "path": "apps/api",
+      "framework": "hono",
+      "runtime": "bun",
+      "database": "postgresql",
+      "orm": "prisma"
+    }
+  }
+}

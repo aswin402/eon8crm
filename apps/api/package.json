@@ -1,0 +1,29 @@
+{
+  "name": "hono-full",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "start": "bun run src/server.ts",
+    "lint": "echo \"no lint configured\"",
+    "format": "echo \"no formatter configured\""
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "",
+    "@prisma/client": "^7.8.0",
+    "better-auth": "",
+    "bullmq": "^6.3.6",
+    "dotenv": "",
+    "hono": "",
+    "ioredis": "^6.0.0",
+    "pg": "",
+    "pino": "",
+    "zod": ""
+  },
+  "devDependencies": {
+    "@types/node": "",
+    "@types/pg": "",
+    "pino-pretty": "",
+    "prisma": "^7.8.0",
+    "typescript": ""
+  }
+}

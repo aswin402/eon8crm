@@ -1,0 +1,18 @@
+{
+  "name": "eon8crm-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EON8 Custom CRM & ERP Business Management Platform",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "cd apps/web && bun dev",
+    "dev:api": "cd apps/api && bun dev",
+    "build:web": "cd apps/web && bun run build",
+    "build:api": "cd apps/api && bun run build",
+    "lint": "bun --filter '*' lint"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

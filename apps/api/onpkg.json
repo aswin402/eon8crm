@@ -1,0 +1,69 @@
+{
+  "agent_instructions": {
+    "active_skills": [
+      "hono.md",
+      "postgres.md",
+      "prisma.md",
+      "vite.md"
+    ],
+    "docs_directory": "onpkg_docs/"
+  },
+  "architecture": {
+    "database": "prisma/schema.prisma"
+  },
+  "packages": {
+    "added_by_agent": [],
+    "core": [
+      "@prisma/adapter-pg",
+      "@prisma/client",
+      "@types/node",
+      "@types/pg",
+      "better-auth",
+      "dotenv",
+      "hono",
+      "pg",
+      "pino",
+      "pino-pretty",
+      "prisma",
+      "typescript",
+      "zod"
+    ]
+  },
+  "project": {
+    "name": "api",
+    "package_manager": "bun",
+    "runtime": "bun",
+    "stack": "hono-full"
+  },
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "format": "echo \"no formatter configured\"",
+    "lint": "echo \"no lint configured\"",
+    "start": "bun run src/server.ts"
+  },
+  "sources": {
+    "directories": [
+      "prisma",
+      "src",
+      "src/middleware",
+      "src/schema",
+      "src/utils"
+    ],
+    "file_patterns": [
+      "*.json",
+      "*.md",
+      "*.prisma",
+      "*.ts"
+    ],
+    "files": [
+      "README.md",
+      "package.json",
+      "prisma/schema.prisma",
+      "src/middleware/error.ts",
+      "src/schema/user.schema.ts",
+      "src/server.ts",
+      "src/utils/logger.ts",
+      "src/utils/prisma.ts"
+    ]
+  }
+}
