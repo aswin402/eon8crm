@@ -22,7 +22,7 @@ import {
   Layers,
 } from "lucide-react";
 import api from "@/lib/api";
-import { formatCompactINR as formatINR } from "@/lib/utils";
+import { formatINR, formatCompactINR, formatDate } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
 import { InvoicePreviewModal } from "@/components/invoices/InvoicePreviewModal";
 
@@ -122,7 +122,7 @@ export default function Client360Page() {
                 Outstanding Balance
               </span>
               <div className="text-lg font-semibold font-mono text-amber-600 dark:text-amber-400 tabular-nums">
-                {formatINR(client.financialSummary?.totalOutstanding || 0)}
+                {formatCompactINR(client.financialSummary?.totalOutstanding || 0)}
               </div>
             </div>
           </div>
@@ -141,14 +141,14 @@ export default function Client360Page() {
           <div className="space-y-1 font-mono">
             <span className="font-sans font-medium text-muted-foreground">Lifetime Billed</span>
             <p className="text-lg font-semibold text-foreground tabular-nums">
-              {formatINR(client.financialSummary?.totalBilled || 0)}
+              {formatCompactINR(client.financialSummary?.totalBilled || 0)}
             </p>
           </div>
 
           <div className="space-y-1 font-mono">
             <span className="font-sans font-medium text-muted-foreground">Cleared Collections</span>
             <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {formatINR(client.financialSummary?.totalPaid || 0)}
+              {formatCompactINR(client.financialSummary?.totalPaid || 0)}
             </p>
           </div>
         </div>
@@ -291,10 +291,10 @@ export default function Client360Page() {
                         </button>
                       </td>
                       <td className="py-3.5 px-4 text-muted-foreground">
-                        {new Date(inv.issueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        {formatDate(inv.issueDate)}
                       </td>
                       <td className="py-3.5 px-4 text-muted-foreground">
-                        {new Date(inv.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        {formatDate(inv.dueDate)}
                       </td>
                       <td className="py-3.5 px-4 tabular-nums">{formatINR(Number(inv.subTotal))}</td>
                       <td className="py-3.5 px-4 tabular-nums text-muted-foreground">

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth, requireRole } from "../../middleware/rbac";
+import { redisConnection } from "../../jobs/redis";
 
 export interface OrganizationSettings {
   legalName: string;
@@ -73,7 +74,19 @@ settingsRouter.use("*", requireAuth);
  * GET /api/v1/settings/organization
  * Returns organization profile, GSTIN, and banking remittance details
  */
-settingsRouter.get("/organization", (c) => {
+settingsRouter.get("/organization", async (c) => {
+  try {
+    const cached = await redisConnection.get("eon8:organization_settings");
+    if (cached) {
+      organizationSettings = {
+        ...organizationSettings,
+        ...JSON.parse(cached),
+      };
+    }
+  } catch (err: any) {
+    // Fall back gracefully to in-memory settings if Redis is unavailable
+  }
+
   return c.json({ organization: organizationSettings });
 });
 
@@ -93,6 +106,12 @@ settingsRouter.put("/organization", requireRole(["ADMIN"]), async (c) => {
     ...organizationSettings,
     ...parsed.data,
   };
+
+  try {
+    await redisConnection.set("eon8:organization_settings", JSON.stringify(organizationSettings));
+  } catch (err: any) {
+    // Non-fatal if Redis write fails; in-memory state remains updated
+  }
 
   return c.json({
     message: "Organization settings updated successfully",
