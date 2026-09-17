@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../../utils/prisma";
 import { requireAuth, requireRole } from "../../middleware/rbac";
 import { getOrganizationSettings } from "../settings/settings.router";
+import { generateCsv } from "../../utils/csv";
+import { getAccountsReceivableAging } from "./aging.service";
 
 const invoicesRouter = new Hono();
 invoicesRouter.use("*", requireAuth);
@@ -192,21 +194,21 @@ invoicesRouter.get("/export/tally", async (c) => {
     });
 
     return [
-      `"${formattedDate}"`,
-      `"Sales"`,
-      `"${inv.invoiceNumber}"`,
-      `"${inv.client.companyName.replace(/"/g, '""')}"`,
-      `"${inv.client.gstin || "Unregistered"}"`,
+      formattedDate,
+      "Sales",
+      inv.invoiceNumber,
+      inv.client.companyName,
+      inv.client.gstin || "Unregistered",
       Number(inv.subTotal).toFixed(2),
       Number(inv.cgstAmount).toFixed(2),
       Number(inv.sgstAmount).toFixed(2),
       Number(inv.igstAmount).toFixed(2),
       Number(inv.totalAmount).toFixed(2),
-      `"${inv.status}"`,
-    ].join(",");
+      inv.status,
+    ];
   });
 
-  const csvContent = [headers.join(","), ...rows].join("\r\n");
+  const csvContent = generateCsv(headers, rows);
 
   c.header("Content-Type", "text/csv; charset=utf-8");
   c.header("Content-Disposition", `attachment; filename="tally_sales_register_${new Date().getFullYear()}.csv"`);
@@ -215,180 +217,15 @@ invoicesRouter.get("/export/tally", async (c) => {
 
 // 1.4 Accounts Receivable (AR) Aging Analysis & Debtor Aging Buckets (ERPNext AR Engine)
 invoicesRouter.get("/aging", async (c) => {
-  const invoices = await prisma.invoice.findMany({
-    where: {
-      status: { in: ["SENT", "PARTIAL", "OVERDUE"] },
-    },
-    include: {
-      client: {
-        select: {
-          id: true,
-          clientNumber: true,
-          companyName: true,
-          contactPerson: true,
-          email: true,
-          phone: true,
-          paymentTerms: true,
-        },
-      },
-      project: {
-        select: { id: true, name: true },
-      },
-    },
-    orderBy: { dueDate: "asc" },
-  });
-
-  const now = new Date();
-
-  // Aging Buckets accumulator
-  let totalOutstanding = 0;
-  let currentAmount = 0;        // Not yet overdue (or <= 0 days overdue)
-  let overdue1to30Amount = 0;   // 1 - 30 days overdue
-  let overdue31to60Amount = 0;  // 31 - 60 days overdue
-  let overdue61to90Amount = 0;  // 61 - 90 days overdue
-  let overdue90PlusAmount = 0;  // > 90 days overdue (Critical)
-
-  let currentCount = 0;
-  let overdue1to30Count = 0;
-  let overdue31to60Count = 0;
-  let overdue61to90Count = 0;
-  let overdue90PlusCount = 0;
-
-  // Client debtor grouping map
-  const clientMap = new Map<string, any>();
-
-  const processedInvoices = invoices
-    .map((inv) => {
-      const total = Number(inv.totalAmount);
-      const paid = Number(inv.paidAmount);
-      const balance = Math.max(0, total - paid);
-
-      if (balance <= 0) return null;
-
-      const dueDate = new Date(inv.dueDate);
-      const diffMs = now.getTime() - dueDate.getTime();
-      const daysOverdue = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-      let bucket: "CURRENT" | "1-30" | "31-60" | "61-90" | "90+";
-      if (daysOverdue <= 0) {
-        bucket = "CURRENT";
-        currentAmount += balance;
-        currentCount++;
-      } else if (daysOverdue <= 30) {
-        bucket = "1-30";
-        overdue1to30Amount += balance;
-        overdue1to30Count++;
-      } else if (daysOverdue <= 60) {
-        bucket = "31-60";
-        overdue31to60Amount += balance;
-        overdue31to60Count++;
-      } else if (daysOverdue <= 90) {
-        bucket = "61-90";
-        overdue61to90Amount += balance;
-        overdue61to90Count++;
-      } else {
-        bucket = "90+";
-        overdue90PlusAmount += balance;
-        overdue90PlusCount++;
-      }
-
-      totalOutstanding += balance;
-
-      // Group by client
-      const cId = inv.client.id;
-      if (!clientMap.has(cId)) {
-        clientMap.set(cId, {
-          client: inv.client,
-          totalOutstanding: 0,
-          current: 0,
-          overdue1to30: 0,
-          overdue31to60: 0,
-          overdue61to90: 0,
-          overdue90Plus: 0,
-          maxDaysOverdue: 0,
-          oldestDueDate: inv.dueDate,
-          invoices: [],
-        });
-      }
-
-      const clientEntry = clientMap.get(cId);
-      clientEntry.totalOutstanding += balance;
-      if (bucket === "CURRENT") clientEntry.current += balance;
-      else if (bucket === "1-30") clientEntry.overdue1to30 += balance;
-      else if (bucket === "31-60") clientEntry.overdue31to60 += balance;
-      else if (bucket === "61-90") clientEntry.overdue61to90 += balance;
-      else if (bucket === "90+") clientEntry.overdue90Plus += balance;
-
-      if (daysOverdue > clientEntry.maxDaysOverdue) {
-        clientEntry.maxDaysOverdue = daysOverdue;
-      }
-
-      const invSummary = {
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        issueDate: inv.issueDate,
-        dueDate: inv.dueDate,
-        totalAmount: total,
-        paidAmount: paid,
-        balance,
-        daysOverdue: Math.max(0, daysOverdue),
-        bucket,
-        status: inv.status,
-        projectName: inv.project?.name,
-      };
-
-      clientEntry.invoices.push(invSummary);
-      return {
-        ...invSummary,
-        client: inv.client,
-      };
-    })
-    .filter(Boolean);
-
-  // Calculate Days Sales Outstanding (DSO) over the last 90 days
-  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-  const sales90Days = await prisma.invoice.aggregate({
-    where: {
-      issueDate: { gte: ninetyDaysAgo },
-      status: { notIn: ["DRAFT", "CANCELLED"] },
-    },
-    _sum: { totalAmount: true },
-  });
-
-  const totalSales90 = Number(sales90Days._sum.totalAmount || 0);
-  const dso = totalSales90 > 0 ? Math.round((totalOutstanding / totalSales90) * 90) : 0;
-
-  // Format client debtors summaries
-  const debtors = Array.from(clientMap.values())
-    .map((entry) => ({
-      ...entry,
-      totalOutstanding: Math.round(entry.totalOutstanding),
-      current: Math.round(entry.current),
-      overdue1to30: Math.round(entry.overdue1to30),
-      overdue31to60: Math.round(entry.overdue31to60),
-      overdue61to90: Math.round(entry.overdue61to90),
-      overdue90Plus: Math.round(entry.overdue90Plus),
-      totalOverdue: Math.round(
-        entry.overdue1to30 + entry.overdue31to60 + entry.overdue61to90 + entry.overdue90Plus
-      ),
-      invoicesCount: entry.invoices.length,
-    }))
-    .sort((a, b) => b.totalOutstanding - a.totalOutstanding);
+  const { totalOutstanding, totalOverdue, dso, buckets, debtors, processedInvoices } =
+    await getAccountsReceivableAging();
 
   return c.json({
     summary: {
-      totalOutstanding: Math.round(totalOutstanding),
-      totalOverdue: Math.round(
-        overdue1to30Amount + overdue31to60Amount + overdue61to90Amount + overdue90PlusAmount
-      ),
+      totalOutstanding,
+      totalOverdue,
       dso,
-      buckets: {
-        current: { amount: Math.round(currentAmount), count: currentCount },
-        overdue1to30: { amount: Math.round(overdue1to30Amount), count: overdue1to30Count },
-        overdue31to60: { amount: Math.round(overdue31to60Amount), count: overdue31to60Count },
-        overdue61to90: { amount: Math.round(overdue61to90Amount), count: overdue61to90Count },
-        overdue90Plus: { amount: Math.round(overdue90PlusAmount), count: overdue90PlusCount },
-      },
+      buckets,
       totalUnpaidInvoices: processedInvoices.length,
     },
     debtors,

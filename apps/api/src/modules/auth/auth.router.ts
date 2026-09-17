@@ -3,9 +3,9 @@ import { sign } from "hono/jwt";
 import { z } from "zod";
 import { prisma } from "../../utils/prisma";
 import { requireAuth } from "../../middleware/rbac";
+import { JWT_SECRET } from "../../config/env";
 
 const authRouter = new Hono();
-const JWT_SECRET = process.env.JWT_SECRET || "eon8crm-super-secret-jwt-key-change-in-production-2026";
 
 const loginSchema = z.object({
   email: z.string().email(),

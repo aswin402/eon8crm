@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { verify } from "hono/jwt";
 import type { Context, Next } from "hono";
+import { JWT_SECRET } from "../config/env";
 
 export interface AuthUserPayload {
   userId: string;
@@ -14,8 +15,6 @@ declare module "hono" {
     user: AuthUserPayload;
   }
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || "eon8crm-super-secret-jwt-key-change-in-production-2026";
 
 export const requireAuth = createMiddleware(async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");

@@ -38,7 +38,7 @@ import {
   DunningNoticeModal,
 } from "@/components/invoices";
 import { toast } from "@/components/ui/toast";
-import { formatINR } from "@/lib/utils";
+import { formatINR, formatDate } from "@/lib/utils";
 import { Invoice, AgingReportResponse } from "@/types/schema";
 
 export default function InvoicesPage() {
@@ -340,11 +340,11 @@ export default function InvoicesPage() {
                       </p>
                     </td>
                     <td className="py-3.5 px-4 text-muted-foreground font-mono">
-                      {new Date(inv.issueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      {formatDate(inv.issueDate)}
                     </td>
                     <td className="py-3.5 px-4 font-mono">
                       <span className={isOverdue ? "text-rose-600 font-medium" : "text-muted-foreground"}>
-                        {new Date(inv.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        {formatDate(inv.dueDate)}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 font-mono font-medium text-foreground tabular-nums">

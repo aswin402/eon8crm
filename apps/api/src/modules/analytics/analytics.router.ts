@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { prisma } from "../../utils/prisma";
 import { requireAuth, requireRole } from "../../middleware/rbac";
+import { getAccountsReceivableAging } from "../invoices/aging.service";
 
 const analyticsRouter = new Hono();
 analyticsRouter.use("*", requireAuth);
@@ -206,114 +207,14 @@ analyticsRouter.get("/cashflow", requireRole(["ADMIN", "SUPER_ADMIN", "FINANCE"]
 
 // 3. Accounts Receivable (AR) Aging Analysis
 analyticsRouter.get("/aging", requireRole(["ADMIN", "SUPER_ADMIN", "FINANCE"]), async (c) => {
-  const unpaidInvoices = await prisma.invoice.findMany({
-    where: {
-      status: { in: ["SENT", "PARTIAL", "OVERDUE"] },
-    },
-    include: {
-      client: { select: { id: true, clientNumber: true, companyName: true, email: true } },
-    },
-    orderBy: { dueDate: "asc" },
-  });
-
-  const now = new Date();
-  const buckets = {
-    current: { label: "Current (Not Due)", total: 0, count: 0 },
-    days1to30: { label: "1 - 30 Days", total: 0, count: 0 },
-    days31to60: { label: "31 - 60 Days", total: 0, count: 0 },
-    days60plus: { label: "60+ Days", total: 0, count: 0 },
-  };
-
-  const clientAgingMap = new Map<
-    string,
-    {
-      client: { id: string; clientNumber: string; companyName: string; email: string };
-      current: number;
-      days1to30: number;
-      days31to60: number;
-      days60plus: number;
-      totalOutstanding: number;
-      invoices: Array<{
-        id: string;
-        invoiceNumber: string;
-        dueDate: string;
-        daysOverdue: number;
-        total: number;
-        paid: number;
-        balance: number;
-        bucket: string;
-      }>;
-    }
-  >();
-
-  for (const inv of unpaidInvoices) {
-    const total = Number(inv.totalAmount);
-    const paid = Number(inv.paidAmount);
-    const balance = total - paid;
-    if (balance <= 0) continue;
-
-    const due = new Date(inv.dueDate);
-    const diffMs = now.getTime() - due.getTime();
-    const daysOverdue = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    let bucket: "current" | "days1to30" | "days31to60" | "days60plus" = "current";
-    if (daysOverdue > 60) {
-      bucket = "days60plus";
-    } else if (daysOverdue > 30) {
-      bucket = "days31to60";
-    } else if (daysOverdue > 0) {
-      bucket = "days1to30";
-    }
-
-    buckets[bucket].total += balance;
-    buckets[bucket].count += 1;
-
-    let clientEntry = clientAgingMap.get(inv.clientId);
-    if (!clientEntry) {
-      clientEntry = {
-        client: inv.client,
-        current: 0,
-        days1to30: 0,
-        days31to60: 0,
-        days60plus: 0,
-        totalOutstanding: 0,
-        invoices: [],
-      };
-      clientAgingMap.set(inv.clientId, clientEntry);
-    }
-
-    clientEntry[bucket] += balance;
-    clientEntry.totalOutstanding += balance;
-    clientEntry.invoices.push({
-      id: inv.id,
-      invoiceNumber: inv.invoiceNumber,
-      dueDate: inv.dueDate.toISOString(),
-      daysOverdue: Math.max(0, daysOverdue),
-      total,
-      paid,
-      balance,
-      bucket,
-    });
-  }
-
-  const clientBreakdown = Array.from(clientAgingMap.values()).sort(
-    (a, b) => b.totalOutstanding - a.totalOutstanding
-  );
-
-  const totalOutstanding =
-    buckets.current.total + buckets.days1to30.total + buckets.days31to60.total + buckets.days60plus.total;
+  const { totalOutstanding, legacyBuckets, debtors } = await getAccountsReceivableAging();
 
   return c.json({
     summary: {
-      totalOutstanding: Math.round(totalOutstanding),
-      buckets: {
-        current: { ...buckets.current, total: Math.round(buckets.current.total) },
-        days1to30: { ...buckets.days1to30, total: Math.round(buckets.days1to30.total) },
-        days31to60: { ...buckets.days31to60, total: Math.round(buckets.days31to60.total) },
-        days60plus: { ...buckets.days60plus, total: Math.round(buckets.days60plus.total) },
-      },
+      totalOutstanding,
+      buckets: legacyBuckets,
     },
-    clientBreakdown,
+    clientBreakdown: debtors,
   });
 });
 

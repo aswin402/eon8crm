@@ -20,50 +20,10 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
-
-interface OrgSettings {
-  legalName: string;
-  shortName: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  gstin: string;
-  stateCode: string;
-  pan: string;
-  email: string;
-  phone: string;
-  bankName: string;
-  accountNumber: string;
-  ifsc: string;
-  branch: string;
-  upiId: string;
-  complianceDeclaration: string;
-}
-
-const DEFAULT_SETTINGS: OrgSettings = {
-  legalName: "EON8 TECHNOLOGIES PVT LTD",
-  shortName: "EON8",
-  address: "Plot No. 42, Guindy Industrial Estate, Guindy",
-  city: "Chennai",
-  state: "Tamil Nadu",
-  pincode: "600032",
-  gstin: "33AABCE1234F1Z5",
-  stateCode: "33",
-  pan: "AABCE1234F",
-  email: "billing@eon8.io",
-  phone: "+91 44 2250 1000",
-  bankName: "HDFC Bank Ltd",
-  accountNumber: "50200088991122",
-  ifsc: "HDFC0001234",
-  branch: "Guindy, Chennai",
-  upiId: "eon8crm@hdfcbank",
-  complianceDeclaration:
-    "Certified that particulars given above are true and correct. Invoice generated electronically in compliance with Section 31 of CGST Act 2017.",
-};
+import { DEFAULT_ORGANIZATION_CONFIG, OrganizationConfig } from "@/config/organization";
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<OrgSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<OrganizationConfig>(DEFAULT_ORGANIZATION_CONFIG);
   const [currentUser, setCurrentUser] = useState<{ role: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -94,7 +54,7 @@ export default function SettingsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleChange = (field: keyof OrgSettings, val: string) => {
+  const handleChange = (field: keyof OrganizationConfig, val: string) => {
     setSettings((prev) => ({ ...prev, [field]: val }));
   };
 

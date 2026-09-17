@@ -29,8 +29,14 @@ import {
   ArrowRight,
 } from "lucide-react";
 import api from "@/lib/api";
-import { formatINR, formatCompactINR } from "@/lib/utils";
+import { formatINR, formatCompactINR, formatDate } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
+import {
+  CreateTaskModal,
+  CreateMilestoneModal,
+  TaskFormData,
+  MilestoneFormData,
+} from "@/components/projects";
 
 interface TeamCostContribution {
   user: { id: string; name: string; email: string; avatarUrl?: string | null };
@@ -179,15 +185,15 @@ export default function ProjectDetailPage() {
   const [assignableStaff, setAssignableStaff] = useState<Assignee[]>([]);
 
   // Form states
-  const [taskForm, setTaskForm] = useState({
+  const [taskForm, setTaskForm] = useState<TaskFormData>({
     title: "",
     description: "",
-    priority: "MEDIUM" as const,
+    priority: "MEDIUM",
     assigneeId: "",
     dueDate: "",
   });
 
-  const [milestoneForm, setMilestoneForm] = useState({
+  const [milestoneForm, setMilestoneForm] = useState<MilestoneFormData>({
     title: "",
     description: "",
     amount: 0,
@@ -907,10 +913,7 @@ export default function ProjectDetailPage() {
 
                       {t.dueDate && (
                         <span className="text-[11px] font-mono text-muted-foreground">
-                          {new Date(t.dueDate).toLocaleDateString("en-IN", {
-                            month: "short",
-                            day: "numeric",
-                          })}
+                          {formatDate(t.dueDate)}
                         </span>
                       )}
                     </div>
@@ -978,7 +981,7 @@ export default function ProjectDetailPage() {
 
                     {m.completionDate && (
                       <span className="text-[11px] font-mono text-muted-foreground">
-                        Target: {new Date(m.completionDate).toLocaleDateString("en-IN")}
+                        Target: {formatDate(m.completionDate)}
                       </span>
                     )}
                   </div>
@@ -1015,7 +1018,7 @@ export default function ProjectDetailPage() {
                   project.timeEntries.map((te) => (
                     <tr key={te.id} className="hover:bg-muted/20 transition-colors">
                       <td className="py-2.5 px-3 font-mono text-muted-foreground tabular-nums">
-                        {new Date(te.startTime).toLocaleDateString("en-IN")}
+                        {formatDate(te.startTime)}
                       </td>
                       <td className="py-2.5 px-3 font-medium text-foreground">{te.user?.name}</td>
                       <td className="py-2.5 px-3 text-muted-foreground">{te.task?.title || "Project Delivery"}</td>
@@ -1074,7 +1077,7 @@ export default function ProjectDetailPage() {
                         </Link>
                       </td>
                       <td className="py-2.5 px-3 font-mono text-muted-foreground tabular-nums">
-                        {new Date(inv.issueDate).toLocaleDateString("en-IN")}
+                        {formatDate(inv.issueDate)}
                       </td>
                       <td className="py-2.5 px-3">
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 font-mono text-[11px] text-foreground">
@@ -1113,193 +1116,25 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Create Task Modal */}
-      {isTaskModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border/80 rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-border/80 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Assign Project Task</h3>
-                <p className="text-[11px] text-muted-foreground">{project.name}</p>
-              </div>
-              <button
-                onClick={() => setIsTaskModalOpen(false)}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-md"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTask} className="p-5 space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-medium text-foreground text-[11px]">Task Title *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Implement OAuth SSO Flow"
-                  value={taskForm.title}
-                  onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground focus:outline-hidden focus:border-foreground/40 transition-colors"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-medium text-foreground text-[11px]">Priority</label>
-                  <select
-                    value={taskForm.priority}
-                    onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as any })}
-                    className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground focus:outline-hidden focus:border-foreground/40 transition-colors"
-                  >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="URGENT">Urgent</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-medium text-foreground text-[11px]">Assignee</label>
-                  <select
-                    value={taskForm.assigneeId}
-                    onChange={(e) => setTaskForm({ ...taskForm, assigneeId: e.target.value })}
-                    className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground focus:outline-hidden focus:border-foreground/40 transition-colors"
-                  >
-                    <option value="">Unassigned</option>
-                    {assignableStaff.map((staff) => (
-                      <option key={staff.id} value={staff.id}>
-                        {staff.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-medium text-foreground text-[11px]">Target Due Date</label>
-                <input
-                  type="date"
-                  value={taskForm.dueDate}
-                  onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground font-mono focus:outline-hidden focus:border-foreground/40 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-medium text-foreground text-[11px]">Task Notes & Criteria</label>
-                <textarea
-                  rows={2}
-                  value={taskForm.description}
-                  onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                  placeholder="Acceptance criteria or implementation details..."
-                  className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground focus:outline-hidden focus:border-foreground/40 transition-colors resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
-                <button
-                  type="button"
-                  onClick={() => setIsTaskModalOpen(false)}
-                  className="px-3 py-1.5 rounded-md border border-border/80 text-foreground hover:bg-muted/40 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 rounded-md bg-foreground text-background hover:bg-foreground/90 font-medium transition-colors shadow-2xs"
-                >
-                  Save Task
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateTaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+        onSubmit={handleCreateTask}
+        projectName={project.name}
+        taskForm={taskForm}
+        setTaskForm={setTaskForm}
+        assignableStaff={assignableStaff}
+      />
 
       {/* Create Milestone Modal */}
-      {isMilestoneModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border/80 rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-border/80 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">Add Project Milestone</h3>
-                <p className="text-[11px] text-muted-foreground">{project.name}</p>
-              </div>
-              <button
-                onClick={() => setIsMilestoneModalOpen(false)}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-md"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateMilestone} className="p-5 space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-medium text-foreground text-[11px]">Milestone Title *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Milestone 1: Core API & Architecture"
-                  value={milestoneForm.title}
-                  onChange={(e) => setMilestoneForm({ ...milestoneForm, title: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground focus:outline-hidden focus:border-foreground/40 transition-colors"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-medium text-foreground text-[11px]">Milestone Value (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1000"
-                    placeholder="150000"
-                    value={milestoneForm.amount}
-                    onChange={(e) => setMilestoneForm({ ...milestoneForm, amount: Number(e.target.value) })}
-                    className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground font-mono focus:outline-hidden focus:border-foreground/40 transition-colors"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-medium text-foreground text-[11px]">Target Date</label>
-                  <input
-                    type="date"
-                    value={milestoneForm.completionDate}
-                    onChange={(e) => setMilestoneForm({ ...milestoneForm, completionDate: e.target.value })}
-                    className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground font-mono focus:outline-hidden focus:border-foreground/40 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-medium text-foreground text-[11px]">Scope & Deliverables</label>
-                <textarea
-                  rows={2}
-                  value={milestoneForm.description}
-                  onChange={(e) => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
-                  placeholder="Key deliverables required for client sign-off..."
-                  className="w-full px-2.5 py-1.5 bg-muted/20 border border-border/80 rounded-md text-foreground focus:outline-hidden focus:border-foreground/40 transition-colors resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
-                <button
-                  type="button"
-                  onClick={() => setIsMilestoneModalOpen(false)}
-                  className="px-3 py-1.5 rounded-md border border-border/80 text-foreground hover:bg-muted/40 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 rounded-md bg-foreground text-background hover:bg-foreground/90 font-medium transition-colors shadow-2xs"
-                >
-                  Create Milestone
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateMilestoneModal
+        isOpen={isMilestoneModalOpen}
+        onClose={() => setIsMilestoneModalOpen(false)}
+        onSubmit={handleCreateMilestone}
+        projectName={project.name}
+        milestoneForm={milestoneForm}
+        setMilestoneForm={setMilestoneForm}
+      />
     </div>
   );
 }

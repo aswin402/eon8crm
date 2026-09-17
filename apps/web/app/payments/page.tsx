@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
-import { formatINR } from "@/lib/utils";
+import { formatINR, formatDate } from "@/lib/utils";
 import {
   CreditCard,
   Building2,
@@ -188,11 +188,7 @@ export default function PaymentsPage() {
                     </td>
 
                     <td className="py-2.5 px-4 font-mono text-muted-foreground tabular-nums">
-                      {new Date(p.paymentDate).toLocaleDateString("en-IN", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {formatDate(p.paymentDate)}
                     </td>
 
                     <td className="py-2.5 px-4">

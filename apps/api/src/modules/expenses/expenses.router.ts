@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { prisma } from "../../utils/prisma";
 import { requireAuth, requireRole } from "../../middleware/rbac";
+import { generateCsv } from "../../utils/csv";
 
 const expensesRouter = new Hono();
 expensesRouter.use("*", requireAuth);
@@ -80,15 +81,15 @@ expensesRouter.get("/export", async (c) => {
     });
 
     return [
-      `"${formattedDate}"`,
-      `"${exp.category}"`,
-      `"${exp.description.replace(/"/g, '""')}"`,
-      `"${(exp.vendor || "").replace(/"/g, '""')}"`,
+      formattedDate,
+      exp.category,
+      exp.description,
+      exp.vendor || "",
       Number(exp.amount).toFixed(2),
-    ].join(",");
+    ];
   });
 
-  const csvContent = [headers.join(","), ...rows].join("\r\n");
+  const csvContent = generateCsv(headers, rows);
 
   c.header("Content-Type", "text/csv; charset=utf-8");
   c.header("Content-Disposition", `attachment; filename="operational_expenses_${new Date().getFullYear()}.csv"`);

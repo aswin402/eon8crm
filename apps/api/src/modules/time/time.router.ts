@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { prisma } from "../../utils/prisma";
 import { requireAuth, requireRole } from "../../middleware/rbac";
+import { generateCsv } from "../../utils/csv";
 
 const timeRouter = new Hono();
 timeRouter.use("*", requireAuth);
@@ -293,12 +294,12 @@ timeRouter.get("/export", async (c) => {
     const billableVal = e.isBillable ? ((e.durationMinutes / 60) * Number(e.billingRate)).toFixed(2) : "0.00";
 
     return [
-      `"${formattedDate}"`,
-      `"${e.user.name.replace(/"/g, '""')}"`,
-      `"${e.user.email}"`,
-      `"${(e.project.client?.companyName || "").replace(/"/g, '""')}"`,
-      `"${e.project.name.replace(/"/g, '""')}"`,
-      `"${(e.task?.title || e.description || "").replace(/"/g, '""')}"`,
+      formattedDate,
+      e.user.name,
+      e.user.email,
+      e.project.client?.companyName || "",
+      e.project.name,
+      e.task?.title || e.description || "",
       hours,
       e.durationMinutes,
       Number(e.costRate).toFixed(2),
@@ -307,10 +308,10 @@ timeRouter.get("/export", async (c) => {
       billableVal,
       e.isBillable ? "Yes" : "No",
       e.isApproved ? "Approved" : "Pending",
-    ].join(",");
+    ];
   });
 
-  const csvContent = [headers.join(","), ...rows].join("\r\n");
+  const csvContent = generateCsv(headers, rows);
 
   c.header("Content-Type", "text/csv; charset=utf-8");
   c.header("Content-Disposition", `attachment; filename="timesheet_labor_logs_${new Date().getFullYear()}.csv"`);

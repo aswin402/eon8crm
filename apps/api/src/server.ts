@@ -20,19 +20,15 @@ import { calendarRouter } from "./modules/calendar/calendar.router";
 import { settingsRouter } from "./modules/settings/settings.router";
 import { quotationsRouter } from "./modules/quotations/quotations.router";
 import { scheduleSystemCronJobs, systemWorker } from "./jobs/cron.workers";
+import { PORT, CORS_ORIGINS } from "./config/env";
 
 const app = new Hono();
-const PORT = Number(process.env.PORT) || 3001;
-
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
-  : ["http://localhost:3000", "http://127.0.0.1:3000"];
 
 app.use("*", httpLogger());
 app.use(
   "*",
   cors({
-    origin: allowedOrigins,
+    origin: CORS_ORIGINS,
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],

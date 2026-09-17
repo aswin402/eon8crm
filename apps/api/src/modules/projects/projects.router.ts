@@ -6,6 +6,21 @@ import { requireAuth, requireRole } from "../../middleware/rbac";
 const projectsRouter = new Hono();
 projectsRouter.use("*", requireAuth);
 
+/**
+ * Shared calculation helper for project gross margin and health tier
+ */
+export function calculateProfitabilityMargin(effectiveRevenue: number, totalLaborCost: number) {
+  const grossProfit = effectiveRevenue - totalLaborCost;
+  const marginPercentage =
+    effectiveRevenue > 0 ? Math.round((grossProfit / effectiveRevenue) * 100) : 0;
+
+  let marginHealth: "HIGH" | "HEALTHY" | "DANGER" = "HEALTHY";
+  if (marginPercentage >= 40) marginHealth = "HIGH";
+  else if (marginPercentage < 20) marginHealth = "DANGER";
+
+  return { grossProfit, marginPercentage, marginHealth };
+}
+
 // 1. List all projects with progress and margin indicator
 projectsRouter.get("/", async (c) => {
   const status = c.req.query("status");
@@ -69,14 +84,10 @@ projectsRouter.get("/", async (c) => {
 
     // Benchmark gross profit against billed amount (or billable value if unbilled)
     const effectiveRevenue = totalBilled > 0 ? totalBilled : totalBillableValue;
-    const grossProfit = effectiveRevenue - totalLaborCost;
-    const marginPercentage =
-      effectiveRevenue > 0 ? Math.round((grossProfit / effectiveRevenue) * 100) : 0;
-
-    // Status Pill: High (>40%), Healthy (20-40%), Danger (<20%)
-    let marginHealth = "HEALTHY";
-    if (marginPercentage >= 40) marginHealth = "HIGH";
-    else if (marginPercentage < 20) marginHealth = "DANGER";
+    const { grossProfit, marginPercentage, marginHealth } = calculateProfitabilityMargin(
+      effectiveRevenue,
+      totalLaborCost
+    );
 
     const { tasks, timeEntries, invoices, ...cleanProject } = project;
 
@@ -219,13 +230,10 @@ projectsRouter.get("/:id", async (c) => {
   // 3. Profitability & Margin Analysis
   const budget = Number(project.budget);
   const effectiveRevenue = totalInvoiced > 0 ? totalInvoiced : totalBillableValue;
-  const grossProfit = effectiveRevenue - totalLaborCost;
-  const marginPercentage =
-    effectiveRevenue > 0 ? Math.round((grossProfit / effectiveRevenue) * 100) : 0;
-
-  let marginHealth = "HEALTHY";
-  if (marginPercentage >= 40) marginHealth = "HIGH";
-  else if (marginPercentage < 20) marginHealth = "DANGER";
+  const { grossProfit, marginPercentage, marginHealth } = calculateProfitabilityMargin(
+    effectiveRevenue,
+    totalLaborCost
+  );
 
   const budgetBurnAmount = totalLaborCost;
   const budgetBurnPercentage = budget > 0 ? Math.round((budgetBurnAmount / budget) * 100) : 0;

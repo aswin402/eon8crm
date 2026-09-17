@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { formatDate } from "@/lib/utils";
 import {
   FolderLock,
   FileText,
@@ -205,11 +206,7 @@ export default function DocumentsPage() {
                     </td>
 
                     <td className="py-2.5 px-4 font-mono text-muted-foreground tabular-nums">
-                      {new Date(doc.createdAt).toLocaleDateString("en-IN", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {formatDate(doc.createdAt)}
                     </td>
 
                     <td className="py-2.5 px-4 text-center">
