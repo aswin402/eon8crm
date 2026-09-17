@@ -19,7 +19,7 @@ import {
   Calendar,
 } from "lucide-react";
 import api from "@/lib/api";
-import { formatCompactINR as formatINR } from "@/lib/utils";
+import { formatCompactINR } from "@/lib/utils";
 
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -115,7 +115,7 @@ export default function DashboardPage() {
             <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
           </div>
           <div className="text-2xl font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
-            {kpis ? formatINR(kpis.totalCollected) : "—"}
+            {kpis ? formatCompactINR(kpis.totalCollected) : "—"}
           </div>
           <div className="text-[11px] text-muted-foreground font-mono">
             Bank settled revenue
@@ -129,12 +129,12 @@ export default function DashboardPage() {
             <Clock className="w-3.5 h-3.5 text-amber-500" />
           </div>
           <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
-            {kpis ? formatINR(kpis.totalOutstanding) : "—"}
+            {kpis ? formatCompactINR(kpis.totalOutstanding) : "—"}
           </div>
           <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
             {kpis?.overdueAmount > 0 ? (
               <span className="text-rose-600 dark:text-rose-400 font-medium">
-                {formatINR(kpis.overdueAmount)} overdue
+                {formatCompactINR(kpis.overdueAmount)} overdue
               </span>
             ) : (
               <span className="text-emerald-600">0 overdue</span>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                         {stage.status}
                       </span>
                       <div className="font-mono text-[11px] text-muted-foreground">
-                        <span className="text-foreground font-semibold">{stage.count}</span> ({formatINR(stage.value)})
+                        <span className="text-foreground font-semibold">{stage.count}</span> ({formatCompactINR(stage.value)})
                       </div>
                     </div>
                     <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
@@ -244,10 +244,10 @@ export default function DashboardPage() {
                         <p className="text-[11px] text-muted-foreground">{p.client}</p>
                       </td>
                       <td className="py-2.5 text-right font-mono text-foreground">
-                        {formatINR(p.billed)}
+                        {formatCompactINR(p.billed)}
                       </td>
                       <td className="py-2.5 text-right font-mono text-muted-foreground">
-                        {formatINR(p.laborCost)}
+                        {formatCompactINR(p.laborCost)}
                       </td>
                       <td className="py-2.5 text-right font-mono">
                         <span

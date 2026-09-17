@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
-import { formatCompactINR as formatINR } from "@/lib/utils";
+import { formatCompactINR, formatDate } from "@/lib/utils";
 import { ConvertLeadModal } from "@/components/leads/ConvertLeadModal";
 import { NewLeadModal } from "@/components/leads/NewLeadModal";
 
@@ -286,7 +286,7 @@ export default function LeadsPage() {
             <DollarSign className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(totalPipelineValue)}
+            {formatCompactINR(totalPipelineValue)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">{activeLeads.length} open opportunities</p>
         </div>
@@ -297,7 +297,7 @@ export default function LeadsPage() {
             <TrendingUp className="w-4 h-4 text-emerald-500/80" />
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(totalWonValue)}
+            {formatCompactINR(totalWonValue)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">{wonLeads.length} converted accounts</p>
         </div>
@@ -319,7 +319,7 @@ export default function LeadsPage() {
             <Briefcase className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(avgDealSize)}
+            {formatCompactINR(avgDealSize)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">Per captured lead</p>
         </div>
@@ -361,7 +361,7 @@ export default function LeadsPage() {
                       </span>
                     </div>
                     <span className="text-[11px] font-mono font-medium text-muted-foreground tabular-nums">
-                      {formatINR(totalValue)}
+                      {formatCompactINR(totalValue)}
                     </span>
                   </div>
 
@@ -384,7 +384,7 @@ export default function LeadsPage() {
                             <span>{lead.leadNumber}</span>
                           </div>
                           <span className="font-mono font-semibold text-foreground tabular-nums">
-                            {formatINR(Number(lead.estimatedValue))}
+                            {formatCompactINR(Number(lead.estimatedValue))}
                           </span>
                         </div>
 
@@ -482,7 +482,7 @@ export default function LeadsPage() {
                     </span>
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono font-semibold tabular-nums text-foreground">
-                    {formatINR(Number(lead.estimatedValue))}
+                    {formatCompactINR(Number(lead.estimatedValue))}
                   </td>
                   <td className="py-2.5 px-3 text-muted-foreground">
                     {lead.assignedTo?.name || "Unassigned"}
@@ -518,7 +518,7 @@ export default function LeadsPage() {
                 <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
                   <span>{selectedLead.leadNumber}</span>
                   <span>•</span>
-                  <span>{new Date(selectedLead.createdAt).toLocaleDateString("en-IN")}</span>
+                  <span>{formatDate(selectedLead.createdAt)}</span>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mt-1">
                   {selectedLead.companyName}
@@ -539,7 +539,7 @@ export default function LeadsPage() {
                 <div>
                   <p className="text-[11px] text-muted-foreground font-medium">Estimated Value</p>
                   <p className="text-2xl font-bold font-mono tracking-tight text-foreground tabular-nums mt-0.5">
-                    {formatINR(Number(selectedLead.estimatedValue))}
+                    {formatCompactINR(Number(selectedLead.estimatedValue))}
                   </p>
                 </div>
                 {selectedLead.status !== "WON" ? (
