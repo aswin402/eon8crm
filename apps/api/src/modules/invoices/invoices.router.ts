@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { prisma } from "../../utils/prisma";
 import { requireAuth, requireRole } from "../../middleware/rbac";
+import { getOrganizationSettings } from "../settings/settings.router";
 
 const invoicesRouter = new Hono();
 invoicesRouter.use("*", requireAuth);
@@ -148,8 +149,9 @@ invoicesRouter.get("/export/gstr1-json", async (c) => {
     b2bMap.get(ctin).inv.push(invObj);
   }
 
+  const org = await getOrganizationSettings();
   const gstr1Payload = {
-    gstin: process.env.ORG_GSTIN || "33AABCE1234F1Z5",
+    gstin: org.gstin,
     fp: `${String(new Date().getMonth() + 1).padStart(2, "0")}${new Date().getFullYear()}`,
     b2b: Array.from(b2bMap.values()),
   };
@@ -516,6 +518,8 @@ invoicesRouter.post("/:id/dunning", requireRole(["FINANCE", "ADMIN"]), async (c)
     },
   });
 
+  const org = await getOrganizationSettings();
+
   return c.json({
     notice: {
       noticeReference: noticeRef,
@@ -535,11 +539,11 @@ invoicesRouter.post("/:id/dunning", requireRole(["FINANCE", "ADMIN"]), async (c)
       customRemarks: parsed.data.customRemarks || null,
       generatedAt: now.toISOString(),
       bankDetails: {
-        beneficiary: "CELESTIALABS TECHNOLOGIES PRIVATE LIMITED",
-        bankName: "HDFC Bank Ltd",
-        accountNumber: "50200088912345",
-        ifscCode: "HDFC0000123",
-        upiId: "celestialabs@hdfcbank",
+        beneficiary: org.legalName,
+        bankName: org.bankName,
+        accountNumber: org.accountNumber,
+        ifscCode: org.ifsc,
+        upiId: org.upiId,
       },
     },
   });

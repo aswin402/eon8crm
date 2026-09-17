@@ -45,6 +45,31 @@ let organizationSettings: OrganizationSettings = {
     "Certified that particulars given above are true and correct. Invoice generated electronically in compliance with Section 31 of CGST Act 2017.",
 };
 
+export const STATUTORY_CONSTANTS = {
+  DEFAULT_GST_RATE: 18,
+  DEFAULT_SAC_CODE: "998314",
+  SAC_DESCRIPTION: "Information Technology Design and Development Services",
+  DEFAULT_PAYMENT_TERMS: "Net 30",
+  DEFAULT_STATE_CODE: "33",
+  DEFAULT_STATE_NAME: "Tamil Nadu",
+  MSME_INTEREST_RATE_PER_ANNUM: 18,
+};
+
+export async function getOrganizationSettings(): Promise<OrganizationSettings> {
+  try {
+    const cached = await redisConnection.get("eon8:organization_settings");
+    if (cached) {
+      organizationSettings = {
+        ...organizationSettings,
+        ...JSON.parse(cached),
+      };
+    }
+  } catch (err: any) {
+    // Fall back gracefully to in-memory settings if Redis is unavailable
+  }
+  return organizationSettings;
+}
+
 const updateOrganizationSchema = z.object({
   legalName: z.string().min(1).optional(),
   shortName: z.string().min(1).optional(),
@@ -75,19 +100,8 @@ settingsRouter.use("*", requireAuth);
  * Returns organization profile, GSTIN, and banking remittance details
  */
 settingsRouter.get("/organization", async (c) => {
-  try {
-    const cached = await redisConnection.get("eon8:organization_settings");
-    if (cached) {
-      organizationSettings = {
-        ...organizationSettings,
-        ...JSON.parse(cached),
-      };
-    }
-  } catch (err: any) {
-    // Fall back gracefully to in-memory settings if Redis is unavailable
-  }
-
-  return c.json({ organization: organizationSettings });
+  const settings = await getOrganizationSettings();
+  return c.json({ organization: settings, statutory: STATUTORY_CONSTANTS });
 });
 
 /**

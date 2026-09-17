@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { prisma, pool } from "../../utils/prisma";
 import { requireAuth, requireRole } from "../../middleware/rbac";
+import { STATUTORY_CONSTANTS } from "../settings/settings.router";
 
 const quotationsRouter = new Hono();
 
@@ -81,6 +82,142 @@ function mapRowToQuotation(row: any) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/**
+ * Shared Helper: Resolve or auto-provision Client from quotation details
+ */
+export async function resolveOrCreateClientForQuotation(
+  qtn: {
+    clientId?: string | null;
+    companyName: string;
+    contactPerson: string;
+    email: string;
+    phone?: string | null;
+  },
+  signatoryName?: string
+): Promise<string> {
+  if (qtn.clientId) {
+    const existing = await prisma.client.findUnique({ where: { id: qtn.clientId } });
+    if (existing) return existing.id;
+  }
+
+  const existingClient = await prisma.client.findFirst({
+    where: {
+      OR: [{ email: qtn.email }, { companyName: qtn.companyName }],
+    },
+  });
+
+  if (existingClient) {
+    return existingClient.id;
+  }
+
+  const clientCount = await prisma.client.count();
+  const newClient = await prisma.client.create({
+    data: {
+      clientNumber: `CLI-${String(clientCount + 1001)}`,
+      companyName: qtn.companyName,
+      contactPerson: signatoryName || qtn.contactPerson,
+      email: qtn.email,
+      phone: qtn.phone || "N/A",
+      billingAddress: "Registered Corporate Office",
+      paymentTerms: STATUTORY_CONSTANTS.DEFAULT_PAYMENT_TERMS,
+    },
+  });
+  return newClient.id;
+}
+
+/**
+ * Shared Helper: Initialize Active Project and structured 2-phase Milestones from accepted Quotation
+ */
+export async function createProjectFromQuotation(
+  qtn: {
+    companyName: string;
+    totalAmount: number;
+  },
+  clientId: string,
+  managerId: string,
+  customProjectName?: string
+) {
+  const projName = customProjectName || `${qtn.companyName} - Project Delivery`;
+  return prisma.project.create({
+    data: {
+      name: projName,
+      clientId,
+      managerId,
+      status: "ACTIVE",
+      budget: Number(qtn.totalAmount),
+      startDate: new Date(),
+      milestones: {
+        create: [
+          {
+            title: "Phase 1: Project Kickoff & Requirements Delivery",
+            amount: Math.round(Number(qtn.totalAmount) * 0.5),
+            completionDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          },
+          {
+            title: "Phase 2: Final Acceptance & Handover",
+            amount: Math.round(Number(qtn.totalAmount) * 0.5),
+            completionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        ],
+      },
+    },
+    include: { milestones: true },
+  });
+}
+
+/**
+ * Shared Helper: Generate Draft Tax Invoice mapped from accepted Quotation items & statutory GST rates
+ */
+export async function createInvoiceFromQuotation(
+  qtn: {
+    quotationNumber: string;
+    subTotal: number;
+    cgstAmount: number;
+    sgstAmount: number;
+    igstAmount: number;
+    totalAmount: number;
+    notes?: string | null;
+    terms?: string | null;
+    items: Array<any>;
+  },
+  clientId: string,
+  projectId?: string | null,
+  customNotes?: string
+) {
+  const invoiceCount = await prisma.invoice.count();
+  const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, "0")}`;
+
+  const processedInvoiceItems = (qtn.items || []).map((item: any) => ({
+    description: item.description,
+    sacCode: item.sacCode || STATUTORY_CONSTANTS.DEFAULT_SAC_CODE,
+    quantity: Number(item.quantity) || 1,
+    unitPrice: Number(item.unitPrice),
+    taxRate: Number(item.taxRate) || STATUTORY_CONSTANTS.DEFAULT_GST_RATE,
+    amount: (Number(item.quantity) || 1) * Number(item.unitPrice),
+  }));
+
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 30);
+
+  return prisma.invoice.create({
+    data: {
+      invoiceNumber,
+      clientId,
+      projectId: projectId || undefined,
+      dueDate,
+      subTotal: qtn.subTotal,
+      cgstAmount: qtn.cgstAmount,
+      sgstAmount: qtn.sgstAmount,
+      igstAmount: qtn.igstAmount,
+      totalAmount: qtn.totalAmount,
+      notes: customNotes || `Converted from Quotation #${qtn.quotationNumber}. ${qtn.notes || ""}`.trim(),
+      terms: qtn.terms || "Payment due within 30 days of invoice date.",
+      items: { create: processedInvoiceItems },
+    },
+    include: { items: true },
+  });
 }
 
 // 1. List Quotations with Filtering & Financial Metrics
@@ -187,32 +324,7 @@ quotationsRouter.post("/public/:token/accept", async (c) => {
   }
 
   // 1. Resolve or Create Client
-  let clientId = qtn.clientId;
-  if (!clientId) {
-    const existingClient = await prisma.client.findFirst({
-      where: {
-        OR: [{ email: qtn.email }, { companyName: qtn.companyName }],
-      },
-    });
-
-    if (existingClient) {
-      clientId = existingClient.id;
-    } else {
-      const clientCount = await prisma.client.count();
-      const newClient = await prisma.client.create({
-        data: {
-          clientNumber: `CLI-${String(clientCount + 1001)}`,
-          companyName: qtn.companyName,
-          contactPerson: parsed.data.signatoryName || qtn.contactPerson,
-          email: qtn.email,
-          phone: qtn.phone || "N/A",
-          billingAddress: "Registered Corporate Office",
-          paymentTerms: "Net 30",
-        },
-      });
-      clientId = newClient.id;
-    }
-  }
+  const clientId = await resolveOrCreateClientForQuotation(qtn, parsed.data.signatoryName);
 
   // 2. Resolve default project manager or admin user
   const defaultManager =
@@ -229,66 +341,11 @@ quotationsRouter.post("/public/:token/accept", async (c) => {
   }
 
   // 3. Create Project with milestones
-  const projName = `${qtn.companyName} - Project Delivery`;
-  const createdProject = await prisma.project.create({
-    data: {
-      name: projName,
-      clientId: clientId!,
-      managerId: defaultManager.id,
-      status: "ACTIVE",
-      budget: qtn.totalAmount,
-      startDate: new Date(),
-      milestones: {
-        create: [
-          {
-            title: "Phase 1: Project Kickoff & Requirements Delivery",
-            amount: Math.round(qtn.totalAmount * 0.5),
-            completionDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          },
-          {
-            title: "Phase 2: Final Acceptance & Handover",
-            amount: Math.round(qtn.totalAmount * 0.5),
-            completionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          },
-        ],
-      },
-    },
-    include: { milestones: true },
-  });
+  const createdProject = await createProjectFromQuotation(qtn, clientId, defaultManager.id);
 
   // 4. Create Draft Tax Invoice
-  const invoiceCount = await prisma.invoice.count();
-  const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, "0")}`;
-
-  const processedInvoiceItems = qtn.items.map((item: any) => ({
-    description: item.description,
-    sacCode: item.sacCode || "998314",
-    quantity: Number(item.quantity) || 1,
-    unitPrice: Number(item.unitPrice),
-    taxRate: Number(item.taxRate) || 18,
-    amount: (Number(item.quantity) || 1) * Number(item.unitPrice),
-  }));
-
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + 30);
-
-  const createdInvoice = await prisma.invoice.create({
-    data: {
-      invoiceNumber,
-      clientId: clientId!,
-      projectId: createdProject.id,
-      dueDate,
-      subTotal: qtn.subTotal,
-      cgstAmount: qtn.cgstAmount,
-      sgstAmount: qtn.sgstAmount,
-      igstAmount: qtn.igstAmount,
-      totalAmount: qtn.totalAmount,
-      notes: `Digitally Accepted via Client Proposal Portal. Quotation #${qtn.quotationNumber}.\nSignatory: ${parsed.data.signatoryName} (${parsed.data.signatoryTitle || "Authorized Signatory"}, ${parsed.data.signatoryEmail})`,
-      terms: qtn.terms || "Payment due within 30 days of invoice date.",
-      items: { create: processedInvoiceItems },
-    },
-    include: { items: true },
-  });
+  const invoiceNotes = `Digitally Accepted via Client Proposal Portal. Quotation #${qtn.quotationNumber}.\nSignatory: ${parsed.data.signatoryName} (${parsed.data.signatoryTitle || "Authorized Signatory"}, ${parsed.data.signatoryEmail})`;
+  const createdInvoice = await createInvoiceFromQuotation(qtn, clientId, createdProject.id, invoiceNotes);
 
   // 5. Update Quotation Status to ACCEPTED and record digital signature
   const sigText = `Digitally Accepted & Signed by ${parsed.data.signatoryName} (${parsed.data.signatoryTitle || "Authorized Signatory"}, ${parsed.data.signatoryEmail}) on ${new Date().toUTCString()}.${parsed.data.notes ? `\nClient Comments: ${parsed.data.notes}` : ""}`;
@@ -512,100 +569,28 @@ quotationsRouter.post("/:id/convert", requireRole(["SALES", "PROJECT_MANAGER", "
   }
 
   // 1. Resolve or Create Client
-  let clientId = qtn.clientId;
-  if (!clientId) {
-    const existingClient = await prisma.client.findFirst({
-      where: {
-        OR: [{ email: qtn.email }, { companyName: qtn.companyName }],
-      },
-    });
-
-    if (existingClient) {
-      clientId = existingClient.id;
-    } else {
-      const clientCount = await prisma.client.count();
-      const newClient = await prisma.client.create({
-        data: {
-          clientNumber: `CLI-${String(clientCount + 1001)}`,
-          companyName: qtn.companyName,
-          contactPerson: qtn.contactPerson,
-          email: qtn.email,
-          phone: qtn.phone || "N/A",
-          billingAddress: "Registered Office",
-          paymentTerms: "Net 30",
-        },
-      });
-      clientId = newClient.id;
-    }
-  }
+  const clientId = await resolveOrCreateClientForQuotation(qtn);
 
   let createdProject: any = null;
   let createdInvoice: any = null;
 
   // 2. Create Project if requested
   if (parsed.data.createProject) {
-    const projName = parsed.data.projectName || `${qtn.companyName} - Project Delivery`;
-    createdProject = await prisma.project.create({
-      data: {
-        name: projName,
-        clientId: clientId!,
-        managerId: c.get("user").userId,
-        status: "ACTIVE",
-        budget: qtn.totalAmount,
-        startDate: new Date(),
-        milestones: {
-          create: [
-            {
-              title: "Phase 1: Project Kickoff & Requirements Delivery",
-              amount: Math.round(qtn.totalAmount * 0.5),
-              completionDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-            },
-            {
-              title: "Phase 2: Final Acceptance & Handover",
-              amount: Math.round(qtn.totalAmount * 0.5),
-              completionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            },
-          ],
-        },
-      },
-      include: { milestones: true },
-    });
+    createdProject = await createProjectFromQuotation(
+      qtn,
+      clientId,
+      c.get("user").userId,
+      parsed.data.projectName
+    );
   }
 
   // 3. Create Draft Tax Invoice if requested
   if (parsed.data.createInvoice) {
-    const invoiceCount = await prisma.invoice.count();
-    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, "0")}`;
-
-    const processedInvoiceItems = qtn.items.map((item: any) => ({
-      description: item.description,
-      sacCode: item.sacCode || "998314",
-      quantity: Number(item.quantity) || 1,
-      unitPrice: Number(item.unitPrice),
-      taxRate: Number(item.taxRate) || 18,
-      amount: (Number(item.quantity) || 1) * Number(item.unitPrice),
-    }));
-
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 30);
-
-    createdInvoice = await prisma.invoice.create({
-      data: {
-        invoiceNumber,
-        clientId: clientId!,
-        projectId: createdProject ? createdProject.id : undefined,
-        dueDate,
-        subTotal: qtn.subTotal,
-        cgstAmount: qtn.cgstAmount,
-        sgstAmount: qtn.sgstAmount,
-        igstAmount: qtn.igstAmount,
-        totalAmount: qtn.totalAmount,
-        notes: `Converted from Quotation #${qtn.quotationNumber}. ${qtn.notes || ""}`,
-        terms: qtn.terms || "Payment due within 30 days of invoice date.",
-        items: { create: processedInvoiceItems },
-      },
-      include: { items: true },
-    });
+    createdInvoice = await createInvoiceFromQuotation(
+      qtn,
+      clientId,
+      createdProject ? createdProject.id : undefined
+    );
   }
 
   // 4. Update Quotation Status to ACCEPTED and link references

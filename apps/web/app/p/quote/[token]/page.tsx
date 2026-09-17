@@ -23,6 +23,7 @@ import {
 import { api } from "@/lib/api";
 import { formatINR, formatDate, formatDateTime } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
+import { DEFAULT_ORGANIZATION_CONFIG } from "@/config/organization";
 
 interface QuotationItem {
   description: string;
@@ -236,15 +237,15 @@ export default function PublicProposalPortalPage() {
           <div className="p-6 sm:p-8 border-b border-border/80 flex flex-col sm:flex-row sm:items-start justify-between gap-6 bg-muted/10">
             <div className="space-y-1">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                EON8 CRM & LABS
+                {DEFAULT_ORGANIZATION_CONFIG.brandName}
               </h1>
               <p className="text-xs text-muted-foreground font-mono">
-                CELESTIALABS TECHNOLOGIES PRIVATE LIMITED
+                {DEFAULT_ORGANIZATION_CONFIG.legalName}
               </p>
               <div className="pt-2 text-[11px] text-muted-foreground space-y-0.5">
-                <div>GSTIN: <span className="font-mono text-foreground font-medium">33AABCE1234F1Z5</span></div>
-                <div>SAC Code: <span className="font-mono text-foreground font-medium">998314</span> (IT Design & Software Engineering)</div>
-                <div>Chennai, Tamil Nadu, India</div>
+                <div>GSTIN: <span className="font-mono text-foreground font-medium">{DEFAULT_ORGANIZATION_CONFIG.gstin}</span></div>
+                <div>SAC Code: <span className="font-mono text-foreground font-medium">{DEFAULT_ORGANIZATION_CONFIG.sacCode}</span> ({DEFAULT_ORGANIZATION_CONFIG.sacDescription})</div>
+                <div>{DEFAULT_ORGANIZATION_CONFIG.city}, {DEFAULT_ORGANIZATION_CONFIG.state}, {DEFAULT_ORGANIZATION_CONFIG.country}</div>
               </div>
             </div>
 
@@ -439,7 +440,7 @@ export default function PublicProposalPortalPage() {
                     Proposal Validity Expired
                   </div>
                   <p className="text-amber-700 dark:text-amber-400">
-                    This commercial proposal expired on {formatDate(quotation.validUntil)}. Please reach out to our team at sales@celestialabs.com to request an updated quotation.
+                    This commercial proposal expired on {formatDate(quotation.validUntil)}. Please reach out to our team at {DEFAULT_ORGANIZATION_CONFIG.email} to request an updated quotation.
                   </p>
                 </div>
               </div>
