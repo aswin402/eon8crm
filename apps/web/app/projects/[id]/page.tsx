@@ -25,7 +25,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import api from "@/lib/api";
-import { formatCompactINR as formatINR } from "@/lib/utils";
+import { formatINR, formatCompactINR } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
 
 interface Assignee {
@@ -397,7 +397,7 @@ export default function ProjectDetailPage() {
             <DollarSign className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(budgetNum)}
+            {formatCompactINR(budgetNum)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">Agreed project deal value</p>
         </div>
@@ -411,7 +411,7 @@ export default function ProjectDetailPage() {
             {(totalMinutes / 60).toFixed(1)} hrs
           </div>
           <p className="text-[11px] text-muted-foreground mt-1 font-mono">
-            Cost: {formatINR(totalLaborCost)}
+            Cost: {formatCompactINR(totalLaborCost)}
           </p>
         </div>
 
@@ -431,7 +431,7 @@ export default function ProjectDetailPage() {
             />
           </div>
           <p className="text-[11px] text-muted-foreground mt-1 font-mono">
-            Net: {formatINR(grossProfit)}
+            Net: {formatCompactINR(grossProfit)}
           </p>
         </div>
 
@@ -723,7 +723,7 @@ export default function ProjectDetailPage() {
                         {(te.durationMinutes / 60).toFixed(1)}h ({te.durationMinutes}m)
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-muted-foreground tabular-nums">
-                        ₹{Number(te.costRate).toLocaleString("en-IN")}/hr
+                        {formatINR(Number(te.costRate))}/hr
                       </td>
                       <td className="py-2.5 px-3 text-center">
                         <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-foreground">
@@ -791,10 +791,10 @@ export default function ProjectDetailPage() {
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono font-semibold tabular-nums text-foreground">
-                        ₹{Number(inv.totalAmount).toLocaleString("en-IN")}
+                        {formatINR(Number(inv.totalAmount))}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-muted-foreground tabular-nums">
-                        ₹{Number(inv.paidAmount).toLocaleString("en-IN")}
+                        {formatINR(Number(inv.paidAmount))}
                       </td>
                     </tr>
                   ))

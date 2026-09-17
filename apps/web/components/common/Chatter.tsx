@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { MessageSquare, Lock, PhoneCall, Calendar, Send, Clock, User, ShieldCheck } from "lucide-react";
 import api from "@/lib/api";
+import { formatDateTime } from "@/lib/utils";
 
 interface ActivityItem {
   id: string;
@@ -193,10 +194,7 @@ export function Chatter({ leadId, clientId, initialActivities = [] }: ChatterPro
                         {item.author?.name || "System"}
                       </span>
                       <span className="text-muted-foreground font-mono text-[10px]">
-                        {new Date(item.createdAt).toLocaleString("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
+                        {formatDateTime(item.createdAt)}
                       </span>
                     </div>
 

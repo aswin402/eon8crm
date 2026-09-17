@@ -368,7 +368,7 @@ invoicesRouter.post("/:id/payments", requireRole(["FINANCE", "ADMIN"]), async (c
     const payment = await tx.payment.create({
       data: {
         paymentNumber,
-        invoiceId: id,
+        invoiceId: invoice.id,
         amount: parsed.data.amount,
         paymentMethod: parsed.data.paymentMethod,
         referenceId: parsed.data.referenceId,
@@ -377,7 +377,7 @@ invoicesRouter.post("/:id/payments", requireRole(["FINANCE", "ADMIN"]), async (c
     });
 
     const updatedInvoice = await tx.invoice.update({
-      where: { id },
+      where: { id: invoice.id },
       data: {
         paidAmount: newPaidAmount,
         status: newStatus,

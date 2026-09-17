@@ -15,35 +15,32 @@ export async function scheduleSystemCronJobs() {
     logger.info("Scheduling BullMQ recurring system jobs...");
 
     // 1. Daily Invoice Overdue Monitor (Every day at 00:05 UTC, or every 1 hour in dev)
-    await systemQueue.add(
-      "check-overdue-invoices",
-      {},
+    await systemQueue.upsertJobScheduler(
+      "cron-check-overdue-invoices",
+      { pattern: "5 0 * * *" },
       {
-        repeat: { pattern: "5 0 * * *" }, // Cron format
-        jobId: "cron-check-overdue-invoices",
-        removeOnComplete: true,
+        name: "check-overdue-invoices",
+        data: {},
       }
     );
 
     // 2. SLA Breach Watcher (Every 15 minutes)
-    await systemQueue.add(
-      "sla-monitor",
-      {},
+    await systemQueue.upsertJobScheduler(
+      "cron-sla-monitor",
+      { pattern: "*/15 * * * *" },
       {
-        repeat: { pattern: "*/15 * * * *" },
-        jobId: "cron-sla-monitor",
-        removeOnComplete: true,
+        name: "sla-monitor",
+        data: {},
       }
     );
 
     // 3. Stale Timer Safety Auto-Pause (Every 1 hour)
-    await systemQueue.add(
-      "auto-pause-stale-timers",
-      {},
+    await systemQueue.upsertJobScheduler(
+      "cron-auto-pause-stale-timers",
+      { pattern: "0 * * * *" },
       {
-        repeat: { pattern: "0 * * * *" },
-        jobId: "cron-auto-pause-stale-timers",
-        removeOnComplete: true,
+        name: "auto-pause-stale-timers",
+        data: {},
       }
     );
 

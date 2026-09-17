@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -309,7 +310,7 @@ export default function CalendarPage() {
                       <div className="text-right">
                         <span className="text-[10px] text-muted-foreground block font-mono">Balance Due</span>
                         <span className="text-sm font-semibold font-mono text-foreground tabular-nums">
-                          ₹{ev.amount.toLocaleString("en-IN")}
+                          {formatINR(ev.amount)}
                         </span>
                       </div>
                     )}

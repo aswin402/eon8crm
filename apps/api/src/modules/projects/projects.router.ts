@@ -284,6 +284,10 @@ const createMilestoneSchema = z.object({
 
 projectsRouter.post("/:id/milestones", requireRole(["PROJECT_MANAGER", "ADMIN"]), async (c) => {
   const projectId = c.req.param("id");
+  if (!projectId) {
+    return c.json({ error: "Project ID is required" }, 400);
+  }
+
   const body = await c.req.json();
   const parsed = createMilestoneSchema.safeParse(body);
 
@@ -307,6 +311,10 @@ projectsRouter.post("/:id/milestones", requireRole(["PROJECT_MANAGER", "ADMIN"])
 // 9. Update Milestone (e.g. approve or mark billed)
 projectsRouter.patch("/milestones/:milestoneId", requireRole(["PROJECT_MANAGER", "ADMIN"]), async (c) => {
   const milestoneId = c.req.param("milestoneId");
+  if (!milestoneId) {
+    return c.json({ error: "Milestone ID is required" }, 400);
+  }
+
   const body = await c.req.json();
 
   const milestone = await prisma.milestone.update({

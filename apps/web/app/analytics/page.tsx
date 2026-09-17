@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 import {
   BarChart3,
   TrendingUp,
@@ -162,7 +163,7 @@ export default function AnalyticsPage() {
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
           <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Total Invoiced</span>
           <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            ₹{(kpis?.totalBilled || 0).toLocaleString("en-IN")}
+            {formatINR(kpis?.totalBilled || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground">Cumulative billed client revenue</p>
         </div>
@@ -170,7 +171,7 @@ export default function AnalyticsPage() {
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
           <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Cleared Cash Inflow</span>
           <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-            ₹{(kpis?.totalCollected || 0).toLocaleString("en-IN")}
+            {formatINR(kpis?.totalCollected || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground">Bank account settlements</p>
         </div>
@@ -178,7 +179,7 @@ export default function AnalyticsPage() {
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
           <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Total Receivables (AR)</span>
           <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
-            ₹{(kpis?.totalOutstanding || 0).toLocaleString("en-IN")}
+            {formatINR(kpis?.totalOutstanding || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground">Pending collections</p>
         </div>
@@ -186,7 +187,7 @@ export default function AnalyticsPage() {
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
           <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Overdue Risk Exposure</span>
           <div className="text-xl font-semibold font-mono tabular-nums text-rose-600 dark:text-rose-400">
-            ₹{(kpis?.overdueAmount || 0).toLocaleString("en-IN")}
+            {formatINR(kpis?.overdueAmount || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground">Past payment maturity</p>
         </div>
@@ -206,7 +207,7 @@ export default function AnalyticsPage() {
               <span className="text-muted-foreground">
                 Total Net Margin:{" "}
                 <strong className="text-emerald-600 dark:text-emerald-400">
-                  ₹{cashflowTotals.netProfit.toLocaleString("en-IN")}
+                  {formatINR(cashflowTotals.netProfit)}
                 </strong>
               </span>
             </div>
@@ -244,17 +245,17 @@ export default function AnalyticsPage() {
                   <tr key={row.month} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-medium text-foreground font-sans">{row.month}</td>
                     <td className="py-3 px-4 text-right text-foreground tabular-nums">
-                      ₹{row.billed.toLocaleString("en-IN")}
+                      {formatINR(row.billed)}
                     </td>
                     <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
-                      ₹{row.collected.toLocaleString("en-IN")}
+                      {formatINR(row.collected)}
                     </td>
                     <td className="py-3 px-4 text-right text-muted-foreground tabular-nums">
-                      ₹{row.expenses.toLocaleString("en-IN")}
+                      {formatINR(row.expenses)}
                     </td>
                     <td className="py-3 px-4 text-right font-medium tabular-nums">
                       <span className={row.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-                        {row.netProfit >= 0 ? "+" : ""}₹{row.netProfit.toLocaleString("en-IN")}
+                        {row.netProfit >= 0 ? "+" : ""}{formatINR(row.netProfit)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -291,7 +292,7 @@ export default function AnalyticsPage() {
           <div className="text-right font-mono text-xs">
             <span className="text-muted-foreground">Total Pending: </span>
             <span className="font-semibold text-foreground tabular-nums">
-              ₹{totalOutstanding.toLocaleString("en-IN")}
+              {formatINR(totalOutstanding)}
             </span>
           </div>
         </div>
@@ -303,22 +304,22 @@ export default function AnalyticsPage() {
               <div
                 style={{ width: `${currentPct}%` }}
                 className="bg-emerald-500 h-full transition-all"
-                title={`Current: ₹${currentTotal.toLocaleString("en-IN")} (${currentPct}%)`}
+                title={`Current: ${formatINR(currentTotal)} (${currentPct}%)`}
               />
               <div
                 style={{ width: `${days1to30Pct}%` }}
                 className="bg-amber-500 h-full transition-all"
-                title={`1-30 Days: ₹${days1to30Total.toLocaleString("en-IN")} (${days1to30Pct}%)`}
+                title={`1-30 Days: ${formatINR(days1to30Total)} (${days1to30Pct}%)`}
               />
               <div
                 style={{ width: `${days31to60Pct}%` }}
                 className="bg-orange-500 h-full transition-all"
-                title={`31-60 Days: ₹${days31to60Total.toLocaleString("en-IN")} (${days31to60Pct}%)`}
+                title={`31-60 Days: ${formatINR(days31to60Total)} (${days31to60Pct}%)`}
               />
               <div
                 style={{ width: `${days60plusPct}%` }}
                 className="bg-rose-500 h-full transition-all"
-                title={`60+ Days: ₹${days60plusTotal.toLocaleString("en-IN")} (${days60plusPct}%)`}
+                title={`60+ Days: ${formatINR(days60plusTotal)} (${days60plusPct}%)`}
               />
             </div>
 
@@ -329,7 +330,7 @@ export default function AnalyticsPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   <span>Current (Not Due)</span>
                 </div>
-                <p className="font-semibold text-foreground tabular-nums">₹{currentTotal.toLocaleString("en-IN")}</p>
+                <p className="font-semibold text-foreground tabular-nums">{formatINR(currentTotal)}</p>
                 <p className="text-[10px] text-muted-foreground font-sans">{currentPct}% of total</p>
               </div>
 
@@ -338,7 +339,7 @@ export default function AnalyticsPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                   <span>1 - 30 Days</span>
                 </div>
-                <p className="font-semibold text-amber-600 dark:text-amber-400 tabular-nums">₹{days1to30Total.toLocaleString("en-IN")}</p>
+                <p className="font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{formatINR(days1to30Total)}</p>
                 <p className="text-[10px] text-muted-foreground font-sans">{days1to30Pct}% of total</p>
               </div>
 
@@ -347,7 +348,7 @@ export default function AnalyticsPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                   <span>31 - 60 Days</span>
                 </div>
-                <p className="font-semibold text-orange-600 dark:text-orange-400 tabular-nums">₹{days31to60Total.toLocaleString("en-IN")}</p>
+                <p className="font-semibold text-orange-600 dark:text-orange-400 tabular-nums">{formatINR(days31to60Total)}</p>
                 <p className="text-[10px] text-muted-foreground font-sans">{days31to60Pct}% of total</p>
               </div>
 
@@ -356,7 +357,7 @@ export default function AnalyticsPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                   <span>60+ Days (Critical)</span>
                 </div>
-                <p className="font-semibold text-rose-600 dark:text-rose-400 tabular-nums">₹{days60plusTotal.toLocaleString("en-IN")}</p>
+                <p className="font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatINR(days60plusTotal)}</p>
                 <p className="text-[10px] text-muted-foreground font-sans">{days60plusPct}% of total</p>
               </div>
             </div>
@@ -399,19 +400,19 @@ export default function AnalyticsPage() {
                           </span>
                         </td>
                         <td className="py-2.5 px-3 text-right text-muted-foreground tabular-nums">
-                          ₹{row.current.toLocaleString("en-IN")}
+                          {formatINR(row.current)}
                         </td>
                         <td className="py-2.5 px-3 text-right text-amber-600 dark:text-amber-400 tabular-nums">
-                          ₹{row.days1to30.toLocaleString("en-IN")}
+                          {formatINR(row.days1to30)}
                         </td>
                         <td className="py-2.5 px-3 text-right text-orange-600 dark:text-orange-400 tabular-nums">
-                          ₹{row.days31to60.toLocaleString("en-IN")}
+                          {formatINR(row.days31to60)}
                         </td>
                         <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400 font-medium tabular-nums">
-                          ₹{row.days60plus.toLocaleString("en-IN")}
+                          {formatINR(row.days60plus)}
                         </td>
                         <td className="py-2.5 px-3 text-right font-semibold text-foreground tabular-nums">
-                          ₹{row.totalOutstanding.toLocaleString("en-IN")}
+                          {formatINR(row.totalOutstanding)}
                         </td>
                       </tr>
                     ))
@@ -423,28 +424,29 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Project Profitability Rankings */}
+      {/* Project Profitability Margins */}
       <div className="rounded-xl bg-card border border-border/80 shadow-2xs overflow-hidden">
-        <div className="px-4 py-3 border-b border-border/80 bg-muted/20 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-border/80 flex items-center justify-between bg-muted/20">
           <div>
             <h2 className="text-xs font-mono font-medium text-foreground uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-              Project Gross Margin Leaderboard
+              <PieChart className="w-3.5 h-3.5 text-muted-foreground" />
+              Project Gross Margins & Labor Telemetry
             </h2>
           </div>
-          <Link
-            href="/projects"
-            className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 transition-colors"
-          >
-            <span>All Projects</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="text-xs text-muted-foreground font-mono">
+            Direct Cost Realization
+          </div>
         </div>
 
         <div className="divide-y divide-border/60">
-          {projectProfits.length === 0 ? (
-            <div className="p-8 text-center text-xs text-muted-foreground">
-              No active project profit calculations available.
+          {isLoading ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-muted-foreground" />
+              Loading margin profiles...
+            </div>
+          ) : projectProfits.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              No active project financial logs available.
             </div>
           ) : (
             projectProfits.map((p) => (
@@ -459,17 +461,17 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-6 text-xs font-mono">
                   <div>
                     <span className="text-[10px] text-muted-foreground block font-sans">Billed</span>
-                    <span className="font-medium text-foreground tabular-nums">₹{p.billed.toLocaleString("en-IN")}</span>
+                    <span className="font-medium text-foreground tabular-nums">{formatINR(p.billed)}</span>
                   </div>
 
                   <div>
                     <span className="text-[10px] text-muted-foreground block font-sans">Labor Cost</span>
-                    <span className="text-muted-foreground tabular-nums">₹{p.laborCost.toLocaleString("en-IN")}</span>
+                    <span className="text-muted-foreground tabular-nums">{formatINR(p.laborCost)}</span>
                   </div>
 
                   <div>
                     <span className="text-[10px] text-muted-foreground block font-sans">Gross Profit</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">₹{p.profit.toLocaleString("en-IN")}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{formatINR(p.profit)}</span>
                   </div>
 
                   <div>

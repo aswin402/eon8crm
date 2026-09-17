@@ -330,7 +330,7 @@ export default function TimeTrackingPage() {
 
                       <td className="py-3.5 px-4 text-right font-mono text-muted-foreground tabular-nums">
                         {entry.isBillable ? (
-                          <span>₹{Number(entry.billingRate).toLocaleString("en-IN")}/hr</span>
+                          <span>{formatINR(Number(entry.billingRate))}/hr</span>
                         ) : (
                           <span className="text-muted-foreground/60">Non-billable</span>
                         )}

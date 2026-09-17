@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 import {
   Shield,
   ShieldAlert,
@@ -302,11 +303,11 @@ export default function TeamPage() {
                       </td>
 
                       <td className="py-2.5 px-4 text-right font-mono font-medium tabular-nums text-foreground">
-                        ₹{cost.toLocaleString("en-IN")}
+                        {formatINR(cost)}
                       </td>
 
                       <td className="py-2.5 px-4 text-right font-mono font-medium tabular-nums text-foreground">
-                        ₹{billable.toLocaleString("en-IN")}
+                        {formatINR(billable)}
                       </td>
 
                       <td className="py-2.5 px-4 text-right">

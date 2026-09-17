@@ -403,7 +403,7 @@ function RecordPaymentModal({ invoice, onClose, onSuccess }: any) {
           <div className="p-3 rounded-lg border border-border/80 bg-muted/30 flex items-center justify-between font-mono">
             <span className="text-[11px] font-sans text-muted-foreground">Pending Balance</span>
             <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
-              ₹{remaining.toLocaleString("en-IN")}
+              {formatINR(remaining)}
             </span>
           </div>
 
@@ -725,17 +725,17 @@ function CreateInvoiceModal({ onClose, onSuccess }: any) {
           <div className="p-3 rounded-lg border border-border/80 bg-muted/20 space-y-1.5 font-mono text-xs">
             <div className="flex justify-between text-muted-foreground">
               <span className="font-sans">Subtotal (Pre-tax)</span>
-              <span className="tabular-nums">₹{subTotal.toLocaleString("en-IN")}</span>
+              <span className="tabular-nums">{formatINR(subTotal)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span className="font-sans">
                 {isInterstate ? "IGST (18%)" : "CGST (9%) + SGST (9%)"}
               </span>
-              <span className="tabular-nums">₹{taxAmount.toLocaleString("en-IN")}</span>
+              <span className="tabular-nums">{formatINR(taxAmount)}</span>
             </div>
             <div className="flex justify-between pt-1.5 border-t border-border/80 font-medium text-foreground text-sm">
               <span className="font-sans">Total Tax Invoice Value</span>
-              <span className="tabular-nums font-semibold">₹{grandTotal.toLocaleString("en-IN")}</span>
+              <span className="tabular-nums font-semibold">{formatINR(grandTotal)}</span>
             </div>
           </div>
 
