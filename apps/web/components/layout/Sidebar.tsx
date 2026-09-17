@@ -13,6 +13,7 @@ import {
   FileText,
   CreditCard,
   Receipt,
+  ScrollText,
   Headphones,
   FolderLock,
   Calendar,
@@ -52,6 +53,7 @@ const navigationSections: NavSection[] = [
   {
     title: "Finance",
     items: [
+      { name: "Quotations", href: "/quotations", icon: ScrollText, allowedRoles: ["SUPER_ADMIN", "ADMIN", "SALES", "PROJECT_MANAGER", "FINANCE"] },
       { name: "Invoices", href: "/invoices", icon: FileText, allowedRoles: ["SUPER_ADMIN", "ADMIN", "FINANCE", "PROJECT_MANAGER"] },
       { name: "Payments", href: "/payments", icon: CreditCard, allowedRoles: ["SUPER_ADMIN", "ADMIN", "FINANCE"] },
       { name: "Expenses", href: "/expenses", icon: Receipt, allowedRoles: ["SUPER_ADMIN", "ADMIN", "FINANCE", "PROJECT_MANAGER"] },

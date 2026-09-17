@@ -16,6 +16,7 @@ import {
   FileText,
   CreditCard,
   Receipt,
+  ScrollText,
   Headphones,
   FolderLock,
   Calendar,
@@ -152,6 +153,7 @@ export function Header() {
     if (pathname.startsWith("/projects")) return "Project Delivery";
     if (pathname.startsWith("/tasks")) return "Task Backlog";
     if (pathname.startsWith("/time")) return "Timesheet Studio";
+    if (pathname.startsWith("/quotations")) return "Quotations & Estimates";
     if (pathname.startsWith("/invoices")) return "Invoices & GST";
     if (pathname.startsWith("/payments")) return "Payment Receipts";
     if (pathname.startsWith("/expenses")) return "Operational Expenses";
@@ -172,6 +174,7 @@ export function Header() {
     { id: "projects", title: "Project Delivery & Margin", category: "Navigation", href: "/projects", icon: Briefcase },
     { id: "tasks", title: "Task Backlog & Sprints", category: "Navigation", href: "/tasks", icon: CheckSquare },
     { id: "time", title: "Timesheets & Work Logs", category: "Navigation", href: "/time", icon: Clock },
+    { id: "quotations", title: "Quotations & Cost Estimates", category: "Navigation", href: "/quotations", icon: ScrollText },
     { id: "invoices", title: "Tax Invoices & GST", category: "Navigation", href: "/invoices", icon: FileText },
     { id: "payments", title: "Cleared Bank Payments", category: "Navigation", href: "/payments", icon: CreditCard },
     { id: "expenses", title: "Operational Overhead Logger", category: "Navigation", href: "/expenses", icon: Receipt },
@@ -182,6 +185,7 @@ export function Header() {
     { id: "team", title: "Team Roster & Labor Rates", category: "Navigation", href: "/team", icon: ShieldAlert },
     { id: "settings", title: "Organization Profile & GSTIN", category: "Navigation", href: "/settings", icon: Settings },
     { id: "new-lead", title: "Create New CRM Lead", category: "Quick Action", href: "/leads", icon: Plus },
+    { id: "new-quotation", title: "Draft Proposal / Quotation", category: "Quick Action", href: "/quotations", icon: Plus },
     { id: "new-client", title: "Onboard Client Account", category: "Quick Action", href: "/clients", icon: Plus },
     { id: "new-invoice", title: "Draft Client Invoice", category: "Quick Action", href: "/invoices", icon: Plus },
     { id: "new-task", title: "Assign Project Task", category: "Quick Action", href: "/tasks", icon: Plus },

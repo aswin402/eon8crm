@@ -94,7 +94,72 @@ invoicesRouter.get("/export/gstr1", async (c) => {
   return c.body(csvContent);
 });
 
-// 1.2 Export Sales Register for Tally Prime / Zoho Books
+// 1.2 Export GSTR-1 in GSTN Portal JSON Schema (Direct upload to gst.gov.in)
+invoicesRouter.get("/export/gstr1-json", async (c) => {
+  const invoices = await prisma.invoice.findMany({
+    include: {
+      client: true,
+      items: true,
+    },
+    orderBy: { issueDate: "asc" },
+  });
+
+  const b2bMap = new Map<string, any>();
+
+  for (const inv of invoices) {
+    const ctin = inv.client.gstin || "URP";
+    const pos = inv.client.gstin ? inv.client.gstin.substring(0, 2) : "33";
+    const dateFormatted = new Date(inv.issueDate)
+      .toLocaleDateString("en-GB")
+      .replace(/\//g, "-");
+
+    const isInterstate = Number(inv.igstAmount) > 0;
+    const rate = 18;
+    const txval = Number(inv.subTotal);
+    const iamt = isInterstate ? Number(inv.igstAmount) : 0;
+    const camt = isInterstate ? 0 : Number(inv.cgstAmount);
+    const samt = isInterstate ? 0 : Number(inv.sgstAmount);
+
+    const invObj = {
+      inum: inv.invoiceNumber,
+      idt: dateFormatted,
+      val: Number(inv.totalAmount),
+      pos,
+      rchrg: "N",
+      inv_typ: "R",
+      itms: [
+        {
+          num: 1,
+          itm_det: {
+            rt: rate,
+            txval,
+            iamt,
+            camt,
+            samt,
+            csamt: 0,
+          },
+        },
+      ],
+    };
+
+    if (!b2bMap.has(ctin)) {
+      b2bMap.set(ctin, { ctin, inv: [] });
+    }
+    b2bMap.get(ctin).inv.push(invObj);
+  }
+
+  const gstr1Payload = {
+    gstin: process.env.ORG_GSTIN || "33AABCE1234F1Z5",
+    fp: `${String(new Date().getMonth() + 1).padStart(2, "0")}${new Date().getFullYear()}`,
+    b2b: Array.from(b2bMap.values()),
+  };
+
+  c.header("Content-Type", "application/json; charset=utf-8");
+  c.header("Content-Disposition", `attachment; filename="gstr1_b2b_${new Date().getFullYear()}.json"`);
+  return c.json(gstr1Payload);
+});
+
+// 1.3 Export Sales Register for Tally Prime / Zoho Books
 invoicesRouter.get("/export/tally", async (c) => {
   const invoices = await prisma.invoice.findMany({
     include: {
@@ -177,13 +242,13 @@ invoicesRouter.post("/pull-unbilled", requireRole(["FINANCE", "ADMIN"]), async (
     return c.json({ error: "projectId is required" }, 400);
   }
 
-  // Fetch approved unbilled time entries
+  // Fetch completed unbilled billable time entries
   const unbilledTime = await prisma.timeEntry.findMany({
     where: {
       projectId,
       isBillable: true,
       isBilled: false,
-      isApproved: true,
+      endTime: { not: null },
     },
     include: {
       user: { select: { name: true } },
@@ -191,11 +256,10 @@ invoicesRouter.post("/pull-unbilled", requireRole(["FINANCE", "ADMIN"]), async (
     },
   });
 
-  // Fetch completed unbilled milestones
+  // Fetch unbilled milestones
   const unbilledMilestones = await prisma.milestone.findMany({
     where: {
       projectId,
-      isApproved: true,
       isBilled: false,
     },
   });
@@ -205,7 +269,7 @@ invoicesRouter.post("/pull-unbilled", requireRole(["FINANCE", "ADMIN"]), async (
   // Group milestones
   for (const m of unbilledMilestones) {
     generatedItems.push({
-      description: `Milestone: ${m.title}`,
+      description: `Milestone Deliverable: ${m.title}`,
       sacCode: "998314",
       quantity: 1,
       unitPrice: Number(m.amount),
@@ -218,7 +282,7 @@ invoicesRouter.post("/pull-unbilled", requireRole(["FINANCE", "ADMIN"]), async (
   const taskHoursMap = new Map<string, { title: string; hours: number; rate: number }>();
   for (const t of unbilledTime) {
     const key = t.taskId || "general";
-    const title = t.task?.title || "Professional Services";
+    const title = t.task?.title || "Professional Engineering Services";
     const hours = t.durationMinutes / 60;
     const rate = Number(t.billingRate);
 
@@ -231,7 +295,7 @@ invoicesRouter.post("/pull-unbilled", requireRole(["FINANCE", "ADMIN"]), async (
     const formattedHours = Number(item.hours.toFixed(2));
     const amount = formattedHours * item.rate;
     generatedItems.push({
-      description: `Hours Logged: ${item.title}`,
+      description: `Billable Hours: ${item.title} (${formattedHours} hrs @ ₹${item.rate}/hr)`,
       sacCode: "998314",
       quantity: formattedHours,
       unitPrice: item.rate,
@@ -244,6 +308,8 @@ invoicesRouter.post("/pull-unbilled", requireRole(["FINANCE", "ADMIN"]), async (
     items: generatedItems,
     timeEntryCount: unbilledTime.length,
     milestoneCount: unbilledMilestones.length,
+    timeEntryIds: unbilledTime.map((t) => t.id),
+    milestoneIds: unbilledMilestones.map((m) => m.id),
   });
 });
 
@@ -255,6 +321,8 @@ const createInvoiceSchema = z.object({
   notes: z.string().optional(),
   terms: z.string().optional(),
   isInterstate: z.boolean().default(false), // If true, apply 18% IGST; if false, 9% CGST + 9% SGST
+  timeEntryIds: z.array(z.string()).optional(),
+  milestoneIds: z.array(z.string()).optional(),
   items: z.array(
     z.object({
       description: z.string().min(1),
@@ -274,7 +342,7 @@ invoicesRouter.post("/", requireRole(["FINANCE", "ADMIN"]), async (c) => {
     return c.json({ error: "Validation failed", details: parsed.error.issues }, 400);
   }
 
-  const { clientId, projectId, dueDate, notes, terms, isInterstate, items } = parsed.data;
+  const { clientId, projectId, dueDate, notes, terms, isInterstate, items, timeEntryIds, milestoneIds } = parsed.data;
 
   // Calculate Subtotal & Taxes
   let subTotal = 0;
@@ -308,33 +376,55 @@ invoicesRouter.post("/", requireRole(["FINANCE", "ADMIN"]), async (c) => {
   const count = await prisma.invoice.count();
   const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
 
-  const invoice = await prisma.invoice.create({
-    data: {
-      invoiceNumber,
-      clientId,
-      projectId,
-      dueDate: new Date(dueDate),
-      subTotal,
-      cgstAmount,
-      sgstAmount,
-      igstAmount,
-      totalAmount,
-      notes,
-      terms: terms || "Payment due within 30 days of invoice date.",
-      items: { create: processedItems },
-    },
-    include: { items: true, client: true },
+  const invoice = await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.create({
+      data: {
+        invoiceNumber,
+        clientId,
+        projectId,
+        dueDate: new Date(dueDate),
+        subTotal,
+        cgstAmount,
+        sgstAmount,
+        igstAmount,
+        totalAmount,
+        notes,
+        terms: terms || "Payment due within 30 days of invoice date.",
+        items: { create: processedItems },
+      },
+      include: { items: true, client: true },
+    });
+
+    // Mark pulled unbilled time entries as billed & link to invoice
+    if (timeEntryIds && timeEntryIds.length > 0) {
+      await tx.timeEntry.updateMany({
+        where: { id: { in: timeEntryIds } },
+        data: { isBilled: true, invoiceId: inv.id },
+      });
+    }
+
+    // Mark pulled unbilled milestones as billed
+    if (milestoneIds && milestoneIds.length > 0) {
+      await tx.milestone.updateMany({
+        where: { id: { in: milestoneIds } },
+        data: { isBilled: true },
+      });
+    }
+
+    return inv;
   });
 
   return c.json({ invoice, message: "Invoice created successfully" }, 201);
 });
 
-// 5. Record Cleared Payment against Invoice
+// 5. Record Cleared Payment against Invoice (with Indian Statutory TDS deduction support)
 const recordPaymentSchema = z.object({
   amount: z.number().positive(),
   paymentMethod: z.string().min(1),
   referenceId: z.string().optional(),
   notes: z.string().optional(),
+  tdsAmount: z.number().nonnegative().optional().default(0),
+  tdsSection: z.string().optional(), // e.g. "194J" (10% Tech/Professional), "194C" (2% Contractor), "194H" (5% Commission)
 });
 
 invoicesRouter.post("/:id/payments", requireRole(["FINANCE", "ADMIN"]), async (c) => {
@@ -351,7 +441,10 @@ invoicesRouter.post("/:id/payments", requireRole(["FINANCE", "ADMIN"]), async (c
     return c.json({ error: "Invoice not found" }, 404);
   }
 
-  const newPaidAmount = Number(invoice.paidAmount) + parsed.data.amount;
+  const tds = parsed.data.tdsAmount || 0;
+  // Total cleared from invoice balance = Net Remittance Received + Statutory TDS Withheld
+  const totalCleared = parsed.data.amount + tds;
+  const newPaidAmount = Number(invoice.paidAmount) + totalCleared;
   const totalAmount = Number(invoice.totalAmount);
 
   let newStatus = invoice.status;
@@ -359,6 +452,14 @@ invoicesRouter.post("/:id/payments", requireRole(["FINANCE", "ADMIN"]), async (c
     newStatus = "PAID";
   } else if (newPaidAmount > 0) {
     newStatus = "PARTIAL";
+  }
+
+  // Format payment notes to document TDS deduction according to Indian Income Tax Act
+  let finalNotes = parsed.data.notes || "";
+  if (tds > 0) {
+    const secTag = parsed.data.tdsSection ? `(Sec ${parsed.data.tdsSection})` : "(TDS)";
+    const tdsNote = `[TDS Deducted: ₹${tds.toLocaleString("en-IN")} ${secTag}]`;
+    finalNotes = finalNotes ? `${finalNotes} | ${tdsNote}` : tdsNote;
   }
 
   const paymentCount = await prisma.payment.count();
@@ -372,7 +473,7 @@ invoicesRouter.post("/:id/payments", requireRole(["FINANCE", "ADMIN"]), async (c
         amount: parsed.data.amount,
         paymentMethod: parsed.data.paymentMethod,
         referenceId: parsed.data.referenceId,
-        notes: parsed.data.notes,
+        notes: finalNotes || null,
       },
     });
 

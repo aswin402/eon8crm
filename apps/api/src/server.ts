@@ -18,6 +18,7 @@ import { ticketsRouter } from "./modules/tickets/tickets.router";
 import { chatterRouter } from "./modules/chatter/chatter.router";
 import { calendarRouter } from "./modules/calendar/calendar.router";
 import { settingsRouter } from "./modules/settings/settings.router";
+import { quotationsRouter } from "./modules/quotations/quotations.router";
 import { scheduleSystemCronJobs, systemWorker } from "./jobs/cron.workers";
 
 const app = new Hono();
@@ -57,6 +58,7 @@ app.get("/", (c) => {
       chatter: "/api/v1/chatter",
       calendar: "/api/v1/calendar",
       settings: "/api/v1/settings",
+      quotations: "/api/v1/quotations",
     },
   });
 });
@@ -83,6 +85,7 @@ app.route("/api/v1/tickets", ticketsRouter);
 app.route("/api/v1/chatter", chatterRouter);
 app.route("/api/v1/calendar", calendarRouter);
 app.route("/api/v1/settings", settingsRouter);
+app.route("/api/v1/quotations", quotationsRouter);
 
 app.notFound((c) => c.json({ error: "Endpoint not found" }, 404));
 app.onError(globalErrorHandler);

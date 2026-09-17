@@ -32,22 +32,27 @@ export default function InvoicesPage() {
   const [previewInvoiceId, setPreviewInvoiceId] = useState<string | null>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
-  const handleDownloadExport = async (type: "gstr1" | "tally") => {
+  const handleDownloadExport = async (type: "gstr1" | "tally" | "gstr1-json") => {
     setIsExportOpen(false);
     try {
       const res = await api.get(`/api/v1/invoices/export/${type}`, { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download =
-        type === "gstr1"
+      const mimeType = type === "gstr1-json" ? "application/json" : "text/csv";
+      const filename =
+        type === "gstr1-json"
+          ? `gstr1_b2b_gstn_${new Date().getFullYear()}.json`
+          : type === "gstr1"
           ? `gstr1_b2b_${new Date().getFullYear()}.csv`
           : `tally_sales_${new Date().getFullYear()}.csv`;
+
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: mimeType }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success(`Exported ${type.toUpperCase()} successfully.`);
+      toast.success(`Exported ${type === "gstr1-json" ? "GSTR-1 JSON (GSTN)" : type.toUpperCase()} successfully.`);
     } catch (err) {
       toast.error("Failed to download export file.");
     }
@@ -136,13 +141,24 @@ export default function InvoicesPage() {
             </button>
 
             {isExportOpen && (
-              <div className="absolute right-0 mt-1.5 w-56 bg-card border border-border/80 rounded-lg shadow-xl py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 mt-1.5 w-60 bg-card border border-border/80 rounded-lg shadow-xl py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  onClick={() => handleDownloadExport("gstr1-json")}
+                  className="w-full text-left px-3 py-2 hover:bg-muted/50 text-foreground transition-colors cursor-pointer flex flex-col"
+                >
+                  <span className="font-semibold text-xs flex items-center justify-between">
+                    <span>GSTR-1 JSON</span>
+                    <span className="px-1.5 py-0.5 text-[9px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded">Direct Upload</span>
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Direct JSON payload for gst.gov.in portal</span>
+                </button>
+                <div className="h-px bg-border/60 my-0.5" />
                 <button
                   onClick={() => handleDownloadExport("gstr1")}
                   className="w-full text-left px-3 py-2 hover:bg-muted/50 text-foreground transition-colors cursor-pointer flex flex-col"
                 >
-                  <span className="font-semibold text-xs">GSTR-1 (Table 4 B2B)</span>
-                  <span className="text-[10px] text-muted-foreground">Official GST Portal CSV format</span>
+                  <span className="font-semibold text-xs">GSTR-1 (Table 4 B2B CSV)</span>
+                  <span className="text-[10px] text-muted-foreground">Official GST Portal offline tool CSV</span>
                 </button>
                 <div className="h-px bg-border/60 my-0.5" />
                 <button
@@ -355,13 +371,33 @@ export default function InvoicesPage() {
   );
 }
 
-// Sub-component: Record Payment Modal
+// Sub-component: Record Payment Modal (with Statutory TDS Withholding)
 function RecordPaymentModal({ invoice, onClose, onSuccess }: any) {
   const remaining = Number(invoice.totalAmount) - Number(invoice.paidAmount);
+  const [hasTds, setHasTds] = useState(false);
+  const [tdsSection, setTdsSection] = useState("194J");
+  const [tdsAmount, setTdsAmount] = useState<number>(0);
   const [amount, setAmount] = useState<number>(remaining);
   const [paymentMethod, setPaymentMethod] = useState("NEFT / Bank Transfer");
   const [referenceId, setReferenceId] = useState("");
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Quick helper to auto-calculate TDS based on standard section percentages of subTotal
+  const handleAutoCalcTds = (section: string) => {
+    setTdsSection(section);
+    const baseAmount = Number(invoice.subTotal || invoice.totalAmount / 1.18);
+    let rate = 0.10;
+    if (section === "194C") rate = 0.02;
+    if (section === "194H") rate = 0.05;
+    const calculatedTds = Math.round(baseAmount * rate);
+    setTdsAmount(calculatedTds);
+    if (remaining >= calculatedTds) {
+      setAmount(remaining - calculatedTds);
+    }
+  };
+
+  const totalCleared = Number(amount || 0) + (hasTds ? Number(tdsAmount || 0) : 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,11 +405,14 @@ function RecordPaymentModal({ invoice, onClose, onSuccess }: any) {
     try {
       await api.post(`/api/v1/invoices/${invoice.id}/payments`, {
         amount: Number(amount),
+        tdsAmount: hasTds ? Number(tdsAmount) : 0,
+        tdsSection: hasTds ? tdsSection : undefined,
         paymentMethod,
         referenceId: referenceId || undefined,
+        notes: notes || undefined,
       });
       onSuccess();
-      toast.success("Payment recorded successfully");
+      toast.success("Payment & statutory settlement recorded successfully");
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to record payment");
     } finally {
@@ -393,13 +432,13 @@ function RecordPaymentModal({ invoice, onClose, onSuccess }: any) {
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+            className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
           <div className="p-3 rounded-lg border border-border/80 bg-muted/30 flex items-center justify-between font-mono">
             <span className="text-[11px] font-sans text-muted-foreground">Pending Balance</span>
             <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
@@ -408,16 +447,70 @@ function RecordPaymentModal({ invoice, onClose, onSuccess }: any) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-medium text-foreground">Amount to Clear (₹) *</label>
+            <label className="font-medium text-foreground">Net Bank Remittance Received (₹) *</label>
             <input
               type="number"
               required
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
-              max={remaining}
               min={1}
               className="w-full px-3 py-2 bg-background border border-border/80 rounded-md font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
             />
+          </div>
+
+          {/* Indian TDS Withholding Section */}
+          <div className="p-3 bg-muted/20 border border-border/80 rounded-lg space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 font-medium text-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasTds}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHasTds(checked);
+                    if (checked && tdsAmount === 0) {
+                      handleAutoCalcTds("194J");
+                    }
+                  }}
+                  className="rounded border-border"
+                />
+                <span>Client Withheld Statutory TDS (Income Tax)</span>
+              </label>
+            </div>
+
+            {hasTds && (
+              <div className="space-y-2 pt-1.5 border-t border-border/60">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-muted-foreground">Section</label>
+                    <select
+                      value={tdsSection}
+                      onChange={(e) => handleAutoCalcTds(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-background border border-border/80 rounded-md text-xs"
+                    >
+                      <option value="194J">194J (10% Tech/Prof)</option>
+                      <option value="194C">194C (2% Contractor)</option>
+                      <option value="194H">194H (5% Commission)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-muted-foreground">TDS Deducted (₹)</label>
+                    <input
+                      type="number"
+                      value={tdsAmount}
+                      onChange={(e) => setTdsAmount(Number(e.target.value))}
+                      min={0}
+                      className="w-full px-2.5 py-1.5 bg-background border border-border/80 rounded-md font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground bg-background p-2 rounded border border-border/60">
+                  <span>Total Cleared:</span>
+                  <span className="font-semibold text-foreground">{formatINR(totalCleared)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -500,13 +593,20 @@ function CreateInvoiceModal({ onClose, onSuccess }: any) {
     });
   }, []);
 
+  const [pulledTimeEntryIds, setPulledTimeEntryIds] = useState<string[]>([]);
+  const [pulledMilestoneIds, setPulledMilestoneIds] = useState<string[]>([]);
+
   const handlePullUnbilled = async () => {
     if (!projectId) return;
     try {
       const res = await api.post("/api/v1/invoices/pull-unbilled", { projectId });
       if (res.data.items?.length > 0) {
         setItems(res.data.items);
-        toast.success(`Loaded ${res.data.items.length} unbilled line items.`);
+        setPulledTimeEntryIds(res.data.timeEntryIds || []);
+        setPulledMilestoneIds(res.data.milestoneIds || []);
+        toast.success(
+          `Aggregated ${res.data.items.length} unbilled items (${res.data.timeEntryCount || 0} timesheets, ${res.data.milestoneCount || 0} milestones).`
+        );
       } else {
         toast.info("No unbilled approved hours or milestones found for this project.");
       }
@@ -541,9 +641,11 @@ function CreateInvoiceModal({ onClose, onSuccess }: any) {
         dueDate,
         isInterstate,
         items,
+        timeEntryIds: pulledTimeEntryIds.length > 0 ? pulledTimeEntryIds : undefined,
+        milestoneIds: pulledMilestoneIds.length > 0 ? pulledMilestoneIds : undefined,
       });
       onSuccess();
-      toast.success("GST Tax Invoice generated successfully");
+      toast.success("GST Tax Invoice generated & billable hours cleared successfully");
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to create invoice");
     } finally {
