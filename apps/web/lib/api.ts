@@ -27,7 +27,7 @@ api.interceptors.response.use(
   (error) => {
     if (typeof window !== "undefined" && error.response?.status === 401) {
       localStorage.removeItem("eon8_token");
-      if (window.location.pathname !== "/login") {
+      if (window.location.pathname !== "/login" && !window.location.pathname.startsWith("/p/")) {
         window.location.href = "/login";
       }
     }

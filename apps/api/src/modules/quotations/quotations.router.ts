@@ -4,7 +4,14 @@ import { prisma, pool } from "../../utils/prisma";
 import { requireAuth, requireRole } from "../../middleware/rbac";
 
 const quotationsRouter = new Hono();
-quotationsRouter.use("*", requireAuth);
+
+// Allow public proposal endpoints without auth
+quotationsRouter.use("*", async (c, next) => {
+  if (c.req.path.includes("/public/")) {
+    return next();
+  }
+  return requireAuth(c, next);
+});
 
 // Ensure PostgreSQL table exists with JSONB items support
 let isTableInitialized = false;
@@ -14,6 +21,7 @@ async function ensureQuotationsTable() {
     CREATE TABLE IF NOT EXISTS quotations (
       id TEXT PRIMARY KEY,
       quotation_number TEXT UNIQUE NOT NULL,
+      share_token TEXT UNIQUE,
       client_id TEXT,
       lead_id TEXT,
       company_name TEXT NOT NULL,
@@ -37,6 +45,8 @@ async function ensureQuotationsTable() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    ALTER TABLE quotations ADD COLUMN IF NOT EXISTS share_token TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_quotations_share_token ON quotations(share_token);
     CREATE INDEX IF NOT EXISTS idx_quotations_status ON quotations(status);
     CREATE INDEX IF NOT EXISTS idx_quotations_client ON quotations(client_id);
   `);
@@ -47,6 +57,7 @@ function mapRowToQuotation(row: any) {
   return {
     id: row.id,
     quotationNumber: row.quotation_number,
+    shareToken: row.share_token || row.id,
     clientId: row.client_id,
     leadId: row.lead_id,
     companyName: row.company_name,
@@ -116,7 +127,195 @@ quotationsRouter.get("/", async (c) => {
   });
 });
 
-// 2. Get Single Quotation
+// Public Proposal Endpoints (Accessible by external clients without JWT authentication)
+quotationsRouter.get("/public/:token", async (c) => {
+  await ensureQuotationsTable();
+  const token = c.req.param("token");
+
+  const { rows } = await pool.query(
+    "SELECT * FROM quotations WHERE share_token = $1 OR id = $1 LIMIT 1",
+    [token]
+  );
+
+  if (rows.length === 0) {
+    return c.json({ error: "Quotation proposal not found or link has expired" }, 404);
+  }
+
+  const quotation = mapRowToQuotation(rows[0]);
+  return c.json({ quotation });
+});
+
+const publicAcceptProposalSchema = z.object({
+  signatoryName: z.string().min(2, "Signatory full name is required"),
+  signatoryTitle: z.string().optional(),
+  signatoryEmail: z.string().email("Valid email address is required"),
+  notes: z.string().optional(),
+});
+
+quotationsRouter.post("/public/:token/accept", async (c) => {
+  await ensureQuotationsTable();
+  const token = c.req.param("token");
+  const body = await c.req.json();
+  const parsed = publicAcceptProposalSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed", details: parsed.error.issues }, 400);
+  }
+
+  const { rows } = await pool.query(
+    "SELECT * FROM quotations WHERE share_token = $1 OR id = $1 LIMIT 1",
+    [token]
+  );
+
+  if (rows.length === 0) {
+    return c.json({ error: "Quotation proposal not found" }, 404);
+  }
+
+  const qtn = mapRowToQuotation(rows[0]);
+
+  if (qtn.status === "ACCEPTED" || qtn.convertedProjectId) {
+    return c.json({
+      error: "This proposal has already been digitally accepted and confirmed.",
+      quotation: qtn,
+    }, 400);
+  }
+
+  if (new Date() > new Date(qtn.validUntil)) {
+    return c.json({
+      error: "This quotation proposal has expired. Please contact our team for a revised quote.",
+    }, 400);
+  }
+
+  // 1. Resolve or Create Client
+  let clientId = qtn.clientId;
+  if (!clientId) {
+    const existingClient = await prisma.client.findFirst({
+      where: {
+        OR: [{ email: qtn.email }, { companyName: qtn.companyName }],
+      },
+    });
+
+    if (existingClient) {
+      clientId = existingClient.id;
+    } else {
+      const clientCount = await prisma.client.count();
+      const newClient = await prisma.client.create({
+        data: {
+          clientNumber: `CLI-${String(clientCount + 1001)}`,
+          companyName: qtn.companyName,
+          contactPerson: parsed.data.signatoryName || qtn.contactPerson,
+          email: qtn.email,
+          phone: qtn.phone || "N/A",
+          billingAddress: "Registered Corporate Office",
+          paymentTerms: "Net 30",
+        },
+      });
+      clientId = newClient.id;
+    }
+  }
+
+  // 2. Resolve default project manager or admin user
+  const defaultManager =
+    (await prisma.user.findFirst({
+      where: { role: { in: ["PROJECT_MANAGER", "ADMIN"] } },
+      select: { id: true },
+    })) ||
+    (await prisma.user.findFirst({
+      select: { id: true },
+    }));
+
+  if (!defaultManager) {
+    return c.json({ error: "No system manager configured to initialize project" }, 500);
+  }
+
+  // 3. Create Project with milestones
+  const projName = `${qtn.companyName} - Project Delivery`;
+  const createdProject = await prisma.project.create({
+    data: {
+      name: projName,
+      clientId: clientId!,
+      managerId: defaultManager.id,
+      status: "ACTIVE",
+      budget: qtn.totalAmount,
+      startDate: new Date(),
+      milestones: {
+        create: [
+          {
+            title: "Phase 1: Project Kickoff & Requirements Delivery",
+            amount: Math.round(qtn.totalAmount * 0.5),
+            completionDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          },
+          {
+            title: "Phase 2: Final Acceptance & Handover",
+            amount: Math.round(qtn.totalAmount * 0.5),
+            completionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        ],
+      },
+    },
+    include: { milestones: true },
+  });
+
+  // 4. Create Draft Tax Invoice
+  const invoiceCount = await prisma.invoice.count();
+  const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, "0")}`;
+
+  const processedInvoiceItems = qtn.items.map((item: any) => ({
+    description: item.description,
+    sacCode: item.sacCode || "998314",
+    quantity: Number(item.quantity) || 1,
+    unitPrice: Number(item.unitPrice),
+    taxRate: Number(item.taxRate) || 18,
+    amount: (Number(item.quantity) || 1) * Number(item.unitPrice),
+  }));
+
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 30);
+
+  const createdInvoice = await prisma.invoice.create({
+    data: {
+      invoiceNumber,
+      clientId: clientId!,
+      projectId: createdProject.id,
+      dueDate,
+      subTotal: qtn.subTotal,
+      cgstAmount: qtn.cgstAmount,
+      sgstAmount: qtn.sgstAmount,
+      igstAmount: qtn.igstAmount,
+      totalAmount: qtn.totalAmount,
+      notes: `Digitally Accepted via Client Proposal Portal. Quotation #${qtn.quotationNumber}.\nSignatory: ${parsed.data.signatoryName} (${parsed.data.signatoryTitle || "Authorized Signatory"}, ${parsed.data.signatoryEmail})`,
+      terms: qtn.terms || "Payment due within 30 days of invoice date.",
+      items: { create: processedInvoiceItems },
+    },
+    include: { items: true },
+  });
+
+  // 5. Update Quotation Status to ACCEPTED and record digital signature
+  const sigText = `Digitally Accepted & Signed by ${parsed.data.signatoryName} (${parsed.data.signatoryTitle || "Authorized Signatory"}, ${parsed.data.signatoryEmail}) on ${new Date().toUTCString()}.${parsed.data.notes ? `\nClient Comments: ${parsed.data.notes}` : ""}`;
+  const finalNotes = qtn.notes ? `${qtn.notes}\n\n[Client Digital Signature]:\n${sigText}` : `[Client Digital Signature]:\n${sigText}`;
+
+  const updateRes = await pool.query(
+    `UPDATE quotations
+     SET status = 'ACCEPTED',
+         client_id = $1,
+         converted_project_id = $2,
+         converted_invoice_id = $3,
+         notes = $4,
+         updated_at = NOW()
+     WHERE id = $5
+     RETURNING *`,
+    [clientId, createdProject.id, createdInvoice.id, finalNotes, qtn.id]
+  );
+
+  return c.json({
+    message: "Proposal digitally signed and accepted successfully! Active project and initial onboarding invoice generated.",
+    quotation: mapRowToQuotation(updateRes.rows[0]),
+    project: createdProject,
+    invoice: createdInvoice,
+  });
+});
+
+// 2. Get Single Quotation (Internal)
 quotationsRouter.get("/:id", async (c) => {
   await ensureQuotationsTable();
   const id = c.req.param("id");
@@ -203,6 +402,7 @@ quotationsRouter.post("/", requireRole(["SALES", "PROJECT_MANAGER", "ADMIN"]), a
   validUntil.setDate(validUntil.getDate() + data.validDays);
 
   const id = `qtn_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const shareToken = `prop_${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`;
 
   const defaultTerms =
     data.terms ||
@@ -210,17 +410,18 @@ quotationsRouter.post("/", requireRole(["SALES", "PROJECT_MANAGER", "ADMIN"]), a
 
   const insertQuery = `
     INSERT INTO quotations (
-      id, quotation_number, client_id, lead_id, company_name, contact_person,
+      id, quotation_number, share_token, client_id, lead_id, company_name, contact_person,
       email, phone, valid_until, status, sub_total, cgst_amount, sgst_amount,
       igst_amount, total_amount, is_interstate, notes, terms, items
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
     ) RETURNING *
   `;
 
   const values = [
     id,
     quotationNumber,
+    shareToken,
     data.clientId || null,
     data.leadId || null,
     data.companyName,

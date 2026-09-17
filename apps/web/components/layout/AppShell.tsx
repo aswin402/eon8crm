@@ -7,10 +7,10 @@ import { Header } from "./Header";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login";
+  const isPublicPage = pathname === "/login" || pathname?.startsWith("/p/");
 
-  if (isAuthPage) {
-    return <main className="min-h-screen w-full">{children}</main>;
+  if (isPublicPage) {
+    return <main className="h-full w-full overflow-y-auto bg-background">{children}</main>;
   }
 
   return (
