@@ -21,7 +21,8 @@ interface InvoiceItem {
   quantity: number;
   unitPrice: number | string;
   amount: number | string;
-  hsnSacCode: string | null;
+  sacCode?: string | null;
+  hsnSacCode?: string | null;
 }
 
 interface PaymentRecord {
@@ -36,7 +37,8 @@ interface PaymentRecord {
 interface InvoiceDetail {
   id: string;
   invoiceNumber: string;
-  subtotal: number | string;
+  subTotal: number | string;
+  subtotal?: number | string;
   cgstAmount: number | string;
   sgstAmount: number | string;
   igstAmount: number | string;
@@ -64,6 +66,47 @@ interface InvoiceDetail {
   payments: PaymentRecord[];
 }
 
+interface OrgProfile {
+  legalName: string;
+  shortName: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  gstin: string;
+  stateCode: string;
+  pan: string;
+  email: string;
+  phone: string;
+  bankName: string;
+  accountNumber: string;
+  ifsc: string;
+  branch: string;
+  upiId: string;
+  complianceDeclaration: string;
+}
+
+const DEFAULT_ORG: OrgProfile = {
+  legalName: "EON8 TECHNOLOGIES PVT LTD",
+  shortName: "E8",
+  address: "Plot No. 42, Guindy Industrial Estate, Guindy",
+  city: "Chennai",
+  state: "Tamil Nadu",
+  pincode: "600032",
+  gstin: "33AABCE1234F1Z5",
+  stateCode: "33",
+  pan: "AABCE1234F",
+  email: "billing@eon8.io",
+  phone: "+91 44 2250 1000",
+  bankName: "HDFC Bank Ltd",
+  accountNumber: "50200088991122",
+  ifsc: "HDFC0001234",
+  branch: "Guindy, Chennai",
+  upiId: "eon8crm@hdfcbank",
+  complianceDeclaration:
+    "Certified that particulars given above are true and correct. Invoice generated electronically in compliance with Section 31 of CGST Act 2017.",
+};
+
 interface InvoicePreviewModalProps {
   invoiceId: string;
   onClose: () => void;
@@ -72,8 +115,20 @@ interface InvoicePreviewModalProps {
 
 export function InvoicePreviewModal({ invoiceId, onClose, onRecordPayment }: InvoicePreviewModalProps) {
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
+  const [org, setOrg] = useState<OrgProfile>(DEFAULT_ORG);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .get("/api/v1/settings/organization")
+      .then((res) => {
+        if (res.data?.organization) {
+          setOrg(res.data.organization);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -182,15 +237,15 @@ export function InvoicePreviewModal({ invoiceId, onClose, onRecordPayment }: Inv
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-6 h-6 rounded bg-foreground text-background font-mono text-xs font-bold flex items-center justify-center">
-                  E8
+                  {org.shortName || "E8"}
                 </div>
-                <span className="font-bold text-base tracking-tight">EON8 TECHNOLOGIES PVT LTD</span>
+                <span className="font-bold text-base tracking-tight">{org.legalName}</span>
               </div>
               <p className="text-[11px] text-muted-foreground print:text-zinc-600 leading-relaxed max-w-sm">
-                Plot No. 42, Guindy Industrial Estate, Guindy<br />
-                Chennai, Tamil Nadu, PIN: 600032<br />
-                GSTIN: <span className="font-mono font-semibold text-foreground print:text-black">33AABCE1234F1Z5</span> (State Code: 33)<br />
-                PAN: AABCE1234F • Email: billing@eon8.io
+                {org.address}<br />
+                {org.city}, {org.state}, PIN: {org.pincode}<br />
+                GSTIN: <span className="font-mono font-semibold text-foreground print:text-black">{org.gstin}</span> (State Code: {org.stateCode})<br />
+                PAN: {org.pan} • Email: {org.email}
               </p>
             </div>
 
@@ -265,7 +320,7 @@ export function InvoicePreviewModal({ invoiceId, onClose, onRecordPayment }: Inv
                       {item.description}
                     </td>
                     <td className="py-2.5 px-3 font-mono text-muted-foreground print:text-zinc-500">
-                      {item.hsnSacCode || "998314"}
+                      {item.sacCode || item.hsnSacCode || "998314"}
                     </td>
                     <td className="py-2.5 px-3 text-right font-mono tabular-nums text-foreground print:text-black">
                       {Number(item.quantity)}
@@ -289,12 +344,12 @@ export function InvoicePreviewModal({ invoiceId, onClose, onRecordPayment }: Inv
               <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground print:text-zinc-500 font-semibold">
                 BANK REMITTANCE DETAILS
               </span>
-              <p className="font-semibold text-foreground print:text-black">HDFC Bank Ltd</p>
+              <p className="font-semibold text-foreground print:text-black">{org.bankName}</p>
               <p className="text-[11px] text-muted-foreground print:text-zinc-600 font-mono">
-                A/C No: 50200088991122<br />
-                IFSC: HDFC0001234<br />
-                Branch: Guindy, Chennai<br />
-                UPI ID: eon8crm@hdfcbank
+                A/C No: {org.accountNumber}<br />
+                IFSC: {org.ifsc}<br />
+                Branch: {org.branch}<br />
+                UPI ID: {org.upiId}
               </p>
             </div>
 
@@ -302,7 +357,7 @@ export function InvoicePreviewModal({ invoiceId, onClose, onRecordPayment }: Inv
             <div className="w-full sm:max-w-xs space-y-2 text-xs">
               <div className="flex items-center justify-between text-muted-foreground print:text-zinc-600 font-mono">
                 <span>Taxable Subtotal</span>
-                <span className="text-foreground print:text-black tabular-nums">{formatINR(invoice.subtotal)}</span>
+                <span className="text-foreground print:text-black tabular-nums">{formatINR(invoice.subTotal ?? invoice.subtotal)}</span>
               </div>
 
               {isInterState ? (
@@ -347,13 +402,12 @@ export function InvoicePreviewModal({ invoiceId, onClose, onRecordPayment }: Inv
           {/* Authorized Signatory & Compliance Footer */}
           <div className="pt-8 border-t border-border/80 print:border-zinc-300 flex flex-col sm:flex-row items-end justify-between gap-4 text-xs">
             <div className="text-[10px] text-muted-foreground print:text-zinc-500 leading-relaxed font-mono">
-              <p>Certified that particulars given above are true and correct.</p>
-              <p>Invoice generated electronically in compliance with Section 31 of CGST Act 2017.</p>
+              <p>{org.complianceDeclaration}</p>
             </div>
 
             <div className="text-center sm:text-right space-y-8">
               <p className="text-[11px] font-semibold text-foreground print:text-black font-mono">
-                For EON8 TECHNOLOGIES PVT LTD
+                For {org.legalName}
               </p>
               <div className="border-t border-border/60 pt-1 text-[10px] text-muted-foreground print:text-zinc-600 font-mono">
                 Authorized Signatory

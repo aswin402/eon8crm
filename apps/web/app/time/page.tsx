@@ -18,6 +18,7 @@ import {
   User,
   Download,
 } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 interface TimeEntry {
   id: string;
@@ -126,8 +127,9 @@ export default function TimeTrackingPage() {
         prev.map((e) => (e.id === id ? { ...e, isApproved: true } : e))
       );
       setFeedbackMsg({ type: "success", text: "Time entry approved." });
+      toast.success("Time entry approved.");
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to approve time entry");
+      toast.error(err.response?.data?.error || "Failed to approve time entry");
     }
   };
 
@@ -151,8 +153,9 @@ export default function TimeTrackingPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast.success("Timesheet exported successfully.");
     } catch (err) {
-      alert("Failed to download timesheet export.");
+      toast.error("Failed to download timesheet export.");
     }
   };
 

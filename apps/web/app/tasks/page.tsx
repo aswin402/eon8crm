@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "@/components/ui/toast";
 
 interface TaskItem {
   id: string;
@@ -91,7 +92,7 @@ export default function TasksPage() {
       setTimeout(() => setActionMsg(null), 3000);
       window.location.reload(); // Refresh to trigger floating timer dock sync
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to start timer");
+      toast.error(err.response?.data?.error || "Failed to start timer");
     }
   };
 

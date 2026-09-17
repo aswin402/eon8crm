@@ -16,6 +16,7 @@ import {
   PieChart,
   Download,
 } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 interface ExpenseItem {
   id: string;
@@ -160,8 +161,9 @@ export default function ExpensesPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast.success("Downloaded expenses export CSV.");
     } catch (err) {
-      alert("Failed to download expenses export.");
+      toast.error("Failed to download expenses export.");
     }
   };
 

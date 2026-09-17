@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { toast } from "@/components/ui/toast";
 
 interface ProjectOption {
   id: string;
@@ -110,7 +111,7 @@ export function TimerDock() {
       setStatusMessage("Timer started");
       setTimeout(() => setStatusMessage(null), 3000);
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to start timer");
+      toast.error(err.response?.data?.error || "Failed to start timer");
     }
   };
 
@@ -125,7 +126,7 @@ export function TimerDock() {
       setStatusMessage(`Logged ${res.data.timeEntry?.durationMinutes || 0}m`);
       setTimeout(() => setStatusMessage(null), 3500);
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to stop timer");
+      toast.error(err.response?.data?.error || "Failed to stop timer");
     }
   };
 

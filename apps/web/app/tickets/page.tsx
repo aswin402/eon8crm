@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { Chatter } from "@/components/common/Chatter";
+import { toast } from "@/components/ui/toast";
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -46,8 +47,9 @@ export default function TicketsPage() {
       if (selectedTicket?.id === ticketId) {
         setSelectedTicket((prev: any) => ({ ...prev, status: newStatus }));
       }
+      toast.success(`Ticket status updated to ${newStatus.replace(/_/g, " ")}`);
     } catch (err) {
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     }
   };
 
@@ -334,8 +336,9 @@ function CreateTicketModal({ onClose, onSuccess }: any) {
         priority,
       });
       onSuccess();
+      toast.success("Support ticket opened successfully");
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to create ticket");
+      toast.error(err.response?.data?.error || "Failed to create ticket");
     } finally {
       setLoading(false);
     }

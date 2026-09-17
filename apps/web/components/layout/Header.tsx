@@ -99,8 +99,11 @@ export function Header() {
       .then((res) => {
         if (res.data.user) setUser(res.data.user);
       })
-      .catch(() => {
-        setUser({ name: "Aswin", email: "admin@eon8crm.internal", role: "SUPER_ADMIN" });
+      .catch((err) => {
+        if (err.response?.status === 401 && typeof window !== "undefined" && window.location.pathname !== "/login") {
+          localStorage.removeItem("eon8_token");
+          window.location.href = "/login";
+        }
       });
   }, []);
 
@@ -395,16 +398,16 @@ export function Header() {
               className="w-7 h-7 rounded-md border border-border/80 bg-muted/40 hover:bg-muted/70 text-foreground font-mono text-xs flex items-center justify-center transition-colors cursor-pointer"
               title={user?.name || "Account Profile"}
             >
-              {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
+              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
             </button>
 
             {isProfileOpen && (
               <div className="absolute right-0 mt-1.5 w-52 bg-card border border-border/80 rounded-xl shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
                 <div className="border-b border-border/60 pb-2.5">
-                  <p className="font-medium text-foreground truncate">{user?.name || "Aswin"}</p>
-                  <p className="text-[11px] font-mono text-muted-foreground truncate">{user?.email || "admin@eon8crm.internal"}</p>
+                  <p className="font-medium text-foreground truncate">{user?.name || "User"}</p>
+                  <p className="text-[11px] font-mono text-muted-foreground truncate">{user?.email || "user@eon8crm.internal"}</p>
                   <span className="inline-block mt-1.5 text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-muted/50 border border-border/60 text-muted-foreground">
-                    {user?.role || "SUPER_ADMIN"}
+                    {user?.role || "MEMBER"}
                   </span>
                 </div>
                 <div className="pt-2 space-y-1">

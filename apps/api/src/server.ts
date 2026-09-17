@@ -17,16 +17,21 @@ import { analyticsRouter } from "./modules/analytics/analytics.router";
 import { ticketsRouter } from "./modules/tickets/tickets.router";
 import { chatterRouter } from "./modules/chatter/chatter.router";
 import { calendarRouter } from "./modules/calendar/calendar.router";
+import { settingsRouter } from "./modules/settings/settings.router";
 import { scheduleSystemCronJobs, systemWorker } from "./jobs/cron.workers";
 
 const app = new Hono();
 const PORT = Number(process.env.PORT) || 3001;
 
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
+  : ["http://localhost:3000", "http://127.0.0.1:3000"];
+
 app.use("*", httpLogger());
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: allowedOrigins,
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
@@ -51,6 +56,7 @@ app.get("/", (c) => {
       tickets: "/api/v1/tickets",
       chatter: "/api/v1/chatter",
       calendar: "/api/v1/calendar",
+      settings: "/api/v1/settings",
     },
   });
 });
@@ -76,6 +82,7 @@ app.route("/api/v1/analytics", analyticsRouter);
 app.route("/api/v1/tickets", ticketsRouter);
 app.route("/api/v1/chatter", chatterRouter);
 app.route("/api/v1/calendar", calendarRouter);
+app.route("/api/v1/settings", settingsRouter);
 
 app.notFound((c) => c.json({ error: "Endpoint not found" }, 404));
 app.onError(globalErrorHandler);

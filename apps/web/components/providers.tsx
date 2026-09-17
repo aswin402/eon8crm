@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { useAppStore } from '@/store/useAppStore';
+import { Toaster } from '@/components/ui/toast';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Rehydrate Zustand store on mount (client side only) to prevent SSR hydration errors
@@ -33,6 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         {children}
+        <Toaster />
       </NextThemesProvider>
     </QueryClientProvider>
   );

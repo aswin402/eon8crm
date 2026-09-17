@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { InvoicePreviewModal } from "@/components/invoices/InvoicePreviewModal";
+import { toast } from "@/components/ui/toast";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -45,8 +46,9 @@ export default function InvoicesPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast.success(`Exported ${type.toUpperCase()} successfully.`);
     } catch (err) {
-      alert("Failed to download export file.");
+      toast.error("Failed to download export file.");
     }
   };
 
@@ -375,8 +377,9 @@ function RecordPaymentModal({ invoice, onClose, onSuccess }: any) {
         referenceId: referenceId || undefined,
       });
       onSuccess();
+      toast.success("Payment recorded successfully");
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to record payment");
+      toast.error(err.response?.data?.error || "Failed to record payment");
     } finally {
       setLoading(false);
     }
@@ -507,11 +510,12 @@ function CreateInvoiceModal({ onClose, onSuccess }: any) {
       const res = await api.post("/api/v1/invoices/pull-unbilled", { projectId });
       if (res.data.items?.length > 0) {
         setItems(res.data.items);
+        toast.success(`Loaded ${res.data.items.length} unbilled line items.`);
       } else {
-        alert("No unbilled approved hours or milestones found for this project.");
+        toast.info("No unbilled approved hours or milestones found for this project.");
       }
     } catch (err: any) {
-      alert("Failed to pull unbilled items");
+      toast.error("Failed to pull unbilled items");
     }
   };
 
@@ -543,8 +547,9 @@ function CreateInvoiceModal({ onClose, onSuccess }: any) {
         items,
       });
       onSuccess();
+      toast.success("GST Tax Invoice generated successfully");
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to create invoice");
+      toast.error(err.response?.data?.error || "Failed to create invoice");
     } finally {
       setLoading(false);
     }

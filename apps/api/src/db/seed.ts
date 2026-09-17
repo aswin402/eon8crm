@@ -382,6 +382,41 @@ async function main() {
     },
   });
 
+  // 12. Seed Client Legal & Contract Documents
+  console.log("Seeding client contract & compliance documents...");
+  await prisma.document.createMany({
+    data: [
+      {
+        clientId: client.id,
+        name: "Master Services Agreement (MSA) — Celestial Enterprise 2026.pdf",
+        fileUrl: "https://vault.eon8crm.internal/docs/msa_celestial_2026.pdf",
+        fileSize: 2457600,
+        mimeType: "application/pdf",
+      },
+      {
+        clientId: client.id,
+        name: "Indian GST Registration Certificate (Form GST REG-06).pdf",
+        fileUrl: "https://vault.eon8crm.internal/docs/gst_reg_06_celestial.pdf",
+        fileSize: 1248000,
+        mimeType: "application/pdf",
+      },
+      {
+        clientId: client.id,
+        name: "Mutual Bilateral Non-Disclosure Agreement (NDA).pdf",
+        fileUrl: "https://vault.eon8crm.internal/docs/nda_celestial_eon8.pdf",
+        fileSize: 842000,
+        mimeType: "application/pdf",
+      },
+      {
+        clientId: client.id,
+        name: "Statement of Work (SOW-01) — Cloud & B2B ERP Migration.pdf",
+        fileUrl: "https://vault.eon8crm.internal/docs/sow_01_b2b_migration.pdf",
+        fileSize: 3145728,
+        mimeType: "application/pdf",
+      },
+    ],
+  });
+
   console.log("✅ Seed completed successfully!");
   console.log("-----------------------------------------------");
   console.log("Test Login Credentials (Password: Password@123):");

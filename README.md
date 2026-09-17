@@ -130,10 +130,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| **Super Admin** | `superadmin@eon8crm.internal` | `admin123` |
-| **Project Manager** | `pm@eon8crm.internal` | `admin123` |
-| **Finance Manager** | `finance@eon8crm.internal` | `admin123` |
-| **Sales Executive** | `sales@eon8crm.internal` | `admin123` |
+| **Super Admin** | `superadmin@eon8crm.internal` | `Password@123` |
+| **Project Manager** | `pm@eon8crm.internal` | `Password@123` |
+| **Finance Manager** | `finance@eon8crm.internal` | `Password@123` |
+| **Sales Executive** | `sales@eon8crm.internal` | `Password@123` |
+| **Developer / Staff** | `dev@eon8crm.internal` | `Password@123` |
 
 ---
 
