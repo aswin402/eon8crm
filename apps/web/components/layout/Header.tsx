@@ -21,6 +21,7 @@ import {
   Calendar,
   BarChart3,
   ShieldAlert,
+  Settings,
   X,
   ArrowRight,
   LogOut,
@@ -159,6 +160,7 @@ export function Header() {
     if (pathname.startsWith("/calendar")) return "Operational Calendar";
     if (pathname.startsWith("/analytics")) return "Executive BI Analytics";
     if (pathname.startsWith("/team")) return "Team & RBAC Costing";
+    if (pathname.startsWith("/settings")) return "Organization Settings";
     return "Workspace";
   };
 
@@ -178,6 +180,7 @@ export function Header() {
     { id: "calendar", title: "Master Operations Calendar", category: "Navigation", href: "/calendar", icon: Calendar },
     { id: "analytics", title: "Financial & Margins BI", category: "Navigation", href: "/analytics", icon: BarChart3 },
     { id: "team", title: "Team Roster & Labor Rates", category: "Navigation", href: "/team", icon: ShieldAlert },
+    { id: "settings", title: "Organization Profile & GSTIN", category: "Navigation", href: "/settings", icon: Settings },
     { id: "new-lead", title: "Create New CRM Lead", category: "Quick Action", href: "/leads", icon: Plus },
     { id: "new-client", title: "Onboard Client Account", category: "Quick Action", href: "/clients", icon: Plus },
     { id: "new-invoice", title: "Draft Client Invoice", category: "Quick Action", href: "/invoices", icon: Plus },
@@ -418,6 +421,14 @@ export function Header() {
                   >
                     <User className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>RBAC & Profile</span>
+                  </Link>
+                  <Link
+                    href="/settings"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 text-foreground transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Organization Settings</span>
                   </Link>
                   <button
                     onClick={handleLogout}

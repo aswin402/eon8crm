@@ -18,6 +18,7 @@ import {
   Calendar,
   BarChart3,
   ShieldAlert,
+  Settings,
   LogOut,
   Command,
 } from "lucide-react";
@@ -69,6 +70,7 @@ const navigationSections: NavSection[] = [
     items: [
       { name: "Analytics & Reports", href: "/analytics", icon: BarChart3, allowedRoles: ["SUPER_ADMIN", "ADMIN", "PROJECT_MANAGER", "FINANCE"] },
       { name: "Team & RBAC", href: "/team", icon: ShieldAlert, allowedRoles: ["SUPER_ADMIN", "ADMIN"] },
+      { name: "Settings", href: "/settings", icon: Settings, allowedRoles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
 ];
