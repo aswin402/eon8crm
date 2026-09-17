@@ -100,41 +100,188 @@ projectsRouter.get("/", async (c) => {
   return c.json({ projects: enrichedProjects });
 });
 
-// 2. Project Detail View
+// 2. Project Detail View (with Cost Center & Profitability P&L Analytics)
 projectsRouter.get("/:id", async (c) => {
   const id = c.req.param("id");
 
-  const project = await prisma.project.findUnique({
-    where: { id },
-    include: {
-      client: true,
-      manager: { select: { id: true, name: true, email: true, avatarUrl: true } },
-      milestones: { orderBy: { createdAt: "asc" } },
-      tasks: {
-        include: {
-          assignee: { select: { id: true, name: true, email: true } },
+  const [project, allTimeEntries] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        manager: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        milestones: { orderBy: { createdAt: "asc" } },
+        tasks: {
+          include: {
+            assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          },
+          orderBy: { createdAt: "desc" },
         },
-        orderBy: { createdAt: "desc" },
-      },
-      timeEntries: {
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-          task: { select: { id: true, title: true } },
+        timeEntries: {
+          include: {
+            user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+            task: { select: { id: true, title: true } },
+          },
+          orderBy: { startTime: "desc" },
+          take: 50,
         },
-        orderBy: { startTime: "desc" },
-        take: 20,
+        invoices: {
+          orderBy: { issueDate: "desc" },
+        },
       },
-      invoices: {
-        orderBy: { issueDate: "desc" },
+    }),
+    prisma.timeEntry.findMany({
+      where: { projectId: id },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
       },
-    },
-  });
+    }),
+  ]);
 
   if (!project) {
     return c.json({ error: "Project not found" }, 404);
   }
 
-  return c.json({ project });
+  // 1. Labor Cost & Hours Aggregation
+  let totalLaborCost = 0;
+  let totalBillableValue = 0;
+  let totalMinutesLogged = 0;
+  let billableMinutesLogged = 0;
+  let unbilledMinutesLogged = 0;
+  let unbilledLaborCost = 0;
+  let unbilledBillableValue = 0;
+
+  // Team resource contribution map
+  const resourceMap = new Map<
+    string,
+    {
+      user: { id: string; name: string; email: string; avatarUrl?: string | null };
+      minutesLogged: number;
+      laborCost: number;
+      billableValue: number;
+    }
+  >();
+
+  for (const te of allTimeEntries) {
+    const minutes = te.durationMinutes;
+    const hours = minutes / 60;
+    const cost = hours * Number(te.costRate);
+    const billableVal = te.isBillable ? hours * Number(te.billingRate) : 0;
+
+    totalMinutesLogged += minutes;
+    totalLaborCost += cost;
+
+    if (te.isBillable) {
+      billableMinutesLogged += minutes;
+      totalBillableValue += billableVal;
+    }
+
+    if (!te.isBilled && te.isBillable) {
+      unbilledMinutesLogged += minutes;
+      unbilledLaborCost += cost;
+      unbilledBillableValue += billableVal;
+    }
+
+    const uId = te.userId;
+    if (!resourceMap.has(uId)) {
+      resourceMap.set(uId, {
+        user: te.user,
+        minutesLogged: 0,
+        laborCost: 0,
+        billableValue: 0,
+      });
+    }
+    const resEntry = resourceMap.get(uId)!;
+    resEntry.minutesLogged += minutes;
+    resEntry.laborCost += cost;
+    resEntry.billableValue += billableVal;
+  }
+
+  const teamCostContributions = Array.from(resourceMap.values()).map((r) => ({
+    user: r.user,
+    hoursLogged: Number((r.minutesLogged / 60).toFixed(1)),
+    laborCost: Math.round(r.laborCost),
+    billableValue: Math.round(r.billableValue),
+    netMargin: Math.round(r.billableValue - r.laborCost),
+  }));
+
+  // 2. Invoice & Cash Collections
+  let totalInvoiced = 0;
+  let totalCollected = 0;
+  for (const inv of project.invoices) {
+    if (inv.status !== "CANCELLED") {
+      totalInvoiced += Number(inv.totalAmount);
+      totalCollected += Number(inv.paidAmount);
+    }
+  }
+  const pendingReceivables = totalInvoiced - totalCollected;
+
+  // 3. Profitability & Margin Analysis
+  const budget = Number(project.budget);
+  const effectiveRevenue = totalInvoiced > 0 ? totalInvoiced : totalBillableValue;
+  const grossProfit = effectiveRevenue - totalLaborCost;
+  const marginPercentage =
+    effectiveRevenue > 0 ? Math.round((grossProfit / effectiveRevenue) * 100) : 0;
+
+  let marginHealth = "HEALTHY";
+  if (marginPercentage >= 40) marginHealth = "HIGH";
+  else if (marginPercentage < 20) marginHealth = "DANGER";
+
+  const budgetBurnAmount = totalLaborCost;
+  const budgetBurnPercentage = budget > 0 ? Math.round((budgetBurnAmount / budget) * 100) : 0;
+  const budgetRemaining = Math.max(0, budget - budgetBurnAmount);
+
+  // 4. Tasks & Milestones Progress
+  const totalTasks = project.tasks.length;
+  const completedTasks = project.tasks.filter((t) => t.isCompleted).length;
+  const taskProgressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const totalMilestones = project.milestones.length;
+  const totalMilestoneValue = project.milestones.reduce((sum, m) => sum + Number(m.amount), 0);
+  const billedMilestoneValue = project.milestones
+    .filter((m) => m.isBilled)
+    .reduce((sum, m) => sum + Number(m.amount), 0);
+  const unbilledMilestoneValue = totalMilestoneValue - billedMilestoneValue;
+
+  const profitability = {
+    budget,
+    budgetBurnAmount: Math.round(budgetBurnAmount),
+    budgetBurnPercentage,
+    budgetRemaining: Math.round(budgetRemaining),
+    isOverBudget: budgetBurnAmount > budget && budget > 0,
+
+    totalInvoiced: Math.round(totalInvoiced),
+    totalCollected: Math.round(totalCollected),
+    pendingReceivables: Math.round(pendingReceivables),
+
+    totalHoursLogged: Number((totalMinutesLogged / 60).toFixed(1)),
+    billableHoursLogged: Number((billableMinutesLogged / 60).toFixed(1)),
+    nonBillableHoursLogged: Number(((totalMinutesLogged - billableMinutesLogged) / 60).toFixed(1)),
+
+    totalLaborCost: Math.round(totalLaborCost),
+    totalBillableValue: Math.round(totalBillableValue),
+
+    unbilledHours: Number((unbilledMinutesLogged / 60).toFixed(1)),
+    unbilledLaborCost: Math.round(unbilledLaborCost),
+    unbilledBillableValue: Math.round(unbilledBillableValue),
+
+    grossProfit: Math.round(grossProfit),
+    marginPercentage,
+    marginHealth,
+
+    teamCostContributions,
+
+    totalTasks,
+    completedTasks,
+    taskProgressPercentage,
+
+    totalMilestones,
+    totalMilestoneValue: Math.round(totalMilestoneValue),
+    billedMilestoneValue: Math.round(billedMilestoneValue),
+    unbilledMilestoneValue: Math.round(unbilledMilestoneValue),
+  };
+
+  return c.json({ project, profitability });
 });
 
 // 3. Create Project

@@ -58,7 +58,9 @@ analyticsRouter.get("/dashboard", requireRole(["ADMIN", "SUPER_ADMIN", "PROJECT_
     where: { status: "ACTIVE" },
     include: {
       client: { select: { companyName: true } },
-      timeEntries: { select: { durationMinutes: true, costRate: true } },
+      timeEntries: {
+        select: { durationMinutes: true, costRate: true, billingRate: true, isBillable: true },
+      },
       invoices: {
         where: { status: { not: "CANCELLED" } },
         select: { totalAmount: true },
@@ -69,20 +71,26 @@ analyticsRouter.get("/dashboard", requireRole(["ADMIN", "SUPER_ADMIN", "PROJECT_
 
   const projectProfits = projects.map((p) => {
     let laborCost = 0;
+    let billableValue = 0;
     for (const te of p.timeEntries) {
-      laborCost += (te.durationMinutes / 60) * Number(te.costRate);
+      const hours = te.durationMinutes / 60;
+      laborCost += hours * Number(te.costRate);
+      if (te.isBillable) {
+        billableValue += hours * Number(te.billingRate);
+      }
     }
     let billed = 0;
     for (const inv of p.invoices) {
       billed += Number(inv.totalAmount);
     }
-    const profit = billed - laborCost;
-    const margin = billed > 0 ? Math.round((profit / billed) * 100) : 0;
+    const effectiveRevenue = billed > 0 ? billed : billableValue;
+    const profit = effectiveRevenue - laborCost;
+    const margin = effectiveRevenue > 0 ? Math.round((profit / effectiveRevenue) * 100) : 0;
     return {
       id: p.id,
       name: p.name,
       client: p.client.companyName,
-      billed,
+      billed: Math.round(effectiveRevenue),
       laborCost: Math.round(laborCost),
       profit: Math.round(profit),
       margin,

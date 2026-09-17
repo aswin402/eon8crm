@@ -18,6 +18,10 @@ import {
   Shield,
   TrendingUp,
   User,
+  Users,
+  BarChart3,
+  Receipt,
+  ExternalLink,
   X,
   AlertCircle,
   ChevronRight,
@@ -27,6 +31,52 @@ import {
 import api from "@/lib/api";
 import { formatINR, formatCompactINR } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
+
+interface TeamCostContribution {
+  user: { id: string; name: string; email: string; avatarUrl?: string | null };
+  hoursLogged: number;
+  laborCost: number;
+  billableValue: number;
+  netMargin: number;
+}
+
+interface ProfitabilityMetrics {
+  budget: number;
+  budgetBurnAmount: number;
+  budgetBurnPercentage: number;
+  budgetRemaining: number;
+  isOverBudget: boolean;
+
+  totalInvoiced: number;
+  totalCollected: number;
+  pendingReceivables: number;
+
+  totalHoursLogged: number;
+  billableHoursLogged: number;
+  nonBillableHoursLogged: number;
+
+  totalLaborCost: number;
+  totalBillableValue: number;
+
+  unbilledHours: number;
+  unbilledLaborCost: number;
+  unbilledBillableValue: number;
+
+  grossProfit: number;
+  marginPercentage: number;
+  marginHealth: string;
+
+  teamCostContributions: TeamCostContribution[];
+
+  totalTasks: number;
+  completedTasks: number;
+  taskProgressPercentage: number;
+
+  totalMilestones: number;
+  totalMilestoneValue: number;
+  billedMilestoneValue: number;
+  unbilledMilestoneValue: number;
+}
 
 interface Assignee {
   id: string;
@@ -117,8 +167,9 @@ export default function ProjectDetailPage() {
   const projectId = params?.id as string;
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
+  const [profitability, setProfitability] = useState<ProfitabilityMetrics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"tasks" | "milestones" | "time" | "invoices" | "chatter">("tasks");
+  const [activeTab, setActiveTab] = useState<"profitability" | "tasks" | "milestones" | "time" | "invoices" | "chatter">("profitability");
   const [taskFilter, setTaskFilter] = useState<"all" | "pending" | "completed">("all");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -149,6 +200,9 @@ export default function ProjectDetailPage() {
       .get(`/api/v1/projects/${projectId}`)
       .then((res) => {
         setProject(res.data.project);
+        if (res.data.profitability) {
+          setProfitability(res.data.profitability);
+        }
       })
       .catch((err) => {
         console.error("Project fetch error:", err);
@@ -389,74 +443,105 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* 4-Metric Scoro/Gauzy Profitability Cockpit */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* 5-Metric ERP Cost Center & Profitability Cockpit */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        {/* Card 1: Contract Budget */}
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
           <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
             <span>Contract Budget</span>
             <DollarSign className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatCompactINR(budgetNum)}
+            {formatINR(profitability?.budget ?? budgetNum)}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1">Agreed project deal value</p>
+          <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+            <span>Burn: {profitability?.budgetBurnPercentage ?? 0}%</span>
+            <span>Rem: {formatCompactINR(profitability?.budgetRemaining ?? 0)}</span>
+          </div>
         </div>
 
+        {/* Card 2: Invoiced & Cash Realization */}
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
           <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Tracked Time & Labor</span>
-            <Clock className="w-4 h-4 text-muted-foreground/70" />
+            <span>Invoiced Revenue</span>
+            <FileText className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {(totalMinutes / 60).toFixed(1)} hrs
+            {formatINR(profitability?.totalInvoiced ?? 0)}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1 font-mono">
-            Cost: {formatCompactINR(totalLaborCost)}
+          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+            Collected: {formatCompactINR(profitability?.totalCollected ?? 0)}
           </p>
         </div>
 
+        {/* Card 3: Tracked Labor Cost */}
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
           <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Gross Profit Margin</span>
+            <span>Internal Labor Cost</span>
+            <Clock className="w-4 h-4 text-muted-foreground/70" />
+          </div>
+          <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+            {formatINR(profitability?.totalLaborCost ?? totalLaborCost)}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1 font-mono">
+            {profitability?.totalHoursLogged ?? (totalMinutes / 60).toFixed(1)} hrs logged
+          </p>
+        </div>
+
+        {/* Card 4: Gross Profit Margin */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+            <span>Gross Operating Margin</span>
             <TrendingUp className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 flex items-center gap-2">
             <span className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-              {marginPct}%
+              {profitability?.marginPercentage ?? marginPct}%
             </span>
             <span
               className={`w-2 h-2 rounded-full ${
-                marginPct >= 40 ? "bg-emerald-500" : marginPct >= 20 ? "bg-amber-500" : "bg-rose-500"
+                (profitability?.marginPercentage ?? marginPct) >= 40
+                  ? "bg-emerald-500"
+                  : (profitability?.marginPercentage ?? marginPct) >= 20
+                  ? "bg-amber-500"
+                  : "bg-rose-500"
               }`}
             />
           </div>
           <p className="text-[11px] text-muted-foreground mt-1 font-mono">
-            Net: {formatCompactINR(grossProfit)}
+            Profit: {formatCompactINR(profitability?.grossProfit ?? grossProfit)}
           </p>
         </div>
 
+        {/* Card 5: Unbilled Work In Progress (WIP) */}
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
           <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Task Progress</span>
-            <CheckSquare className="w-4 h-4 text-muted-foreground/70" />
+            <span>Unbilled Accrual (WIP)</span>
+            <Sparkles className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {progressPct}%
+          <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-amber-600 dark:text-amber-400">
+            {formatINR(profitability?.unbilledBillableValue ?? 0)}
           </div>
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-1.5">
-            <div
-              className="h-full bg-foreground rounded-full transition-all duration-500"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            {completedTasks} of {totalTasks} completed
+          <p className="text-[11px] text-muted-foreground mt-1 font-mono">
+            {profitability?.unbilledHours ?? 0} billable hrs ready
           </p>
         </div>
       </div>
 
       {/* Module Tabs Navigation */}
       <div className="border-b border-border/80 flex items-center gap-2 overflow-x-auto text-xs">
+        <button
+          onClick={() => setActiveTab("profitability")}
+          className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === "profitability"
+              ? "border-foreground text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span>Cost Center & P&L</span>
+        </button>
+
         <button
           onClick={() => setActiveTab("tasks")}
           className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition-colors cursor-pointer whitespace-nowrap ${
@@ -517,6 +602,221 @@ export default function ProjectDetailPage() {
           <span>Project Chatter</span>
         </button>
       </div>
+
+      {/* Tab: Cost Center & Profitability P&L (ERPNext-Inspired) */}
+      {activeTab === "profitability" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Top Row: Budget Burn Visual & Cash Realization */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Budget Run Rate */}
+            <div className="p-5 rounded-xl border border-border/80 bg-card/60 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-semibold text-foreground uppercase font-mono tracking-wider">
+                    Contract Budget Run Rate
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Labor cost consumed against baseline commercial budget
+                  </p>
+                </div>
+                {profitability?.isOverBudget && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                    OVER BUDGET
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline font-mono text-xs">
+                  <span className="text-muted-foreground">
+                    Burned: {formatINR(profitability?.budgetBurnAmount ?? totalLaborCost)}
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {profitability?.budgetBurnPercentage ?? 0}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      (profitability?.budgetBurnPercentage ?? 0) > 100
+                        ? "bg-rose-500"
+                        : (profitability?.budgetBurnPercentage ?? 0) > 80
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{ width: `${Math.min(100, profitability?.budgetBurnPercentage ?? 0)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-muted-foreground font-mono pt-1">
+                  <span>Target: {formatINR(profitability?.budget ?? budgetNum)}</span>
+                  <span>Remaining: {formatINR(profitability?.budgetRemaining ?? 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Invoiced & Unbilled Work In Progress */}
+            <div className="p-5 rounded-xl border border-border/80 bg-card/60 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-semibold text-foreground uppercase font-mono tracking-wider">
+                    Revenue & Unbilled WIP Realization
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Cash flow, client collections, and accrued unbilled services
+                  </p>
+                </div>
+                <Link
+                  href="/invoices"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline cursor-pointer"
+                >
+                  <span>Invoices</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 p-3 bg-muted/20 border border-border/80 rounded-lg text-center font-mono">
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">INVOICED</span>
+                  <span className="font-semibold text-foreground text-xs">
+                    {formatINR(profitability?.totalInvoiced ?? 0)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block">COLLECTED</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-xs">
+                    {formatINR(profitability?.totalCollected ?? 0)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 block">UNBILLED WIP</span>
+                  <span className="font-semibold text-amber-600 dark:text-amber-400 text-xs">
+                    {formatINR(profitability?.unbilledBillableValue ?? 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Team Resource Labor Cost & Margin Contribution */}
+          <div className="p-5 rounded-xl border border-border/80 bg-card/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-semibold text-foreground uppercase font-mono tracking-wider">
+                  Team Resource Labor Cost & Margin Contribution
+                </h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Internal hourly labor cost vs client billable value generated per consultant
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-muted-foreground">
+                {(profitability?.teamCostContributions || []).length} Contributors
+              </span>
+            </div>
+
+            <div className="border border-border/80 rounded-lg overflow-hidden">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border/80 bg-muted/20 text-muted-foreground font-mono text-[10px]">
+                    <th className="py-2.5 px-3">TEAM MEMBER</th>
+                    <th className="py-2.5 px-3 text-right">HOURS LOGGED</th>
+                    <th className="py-2.5 px-3 text-right">INTERNAL LABOR COST</th>
+                    <th className="py-2.5 px-3 text-right">BILLABLE VALUE</th>
+                    <th className="py-2.5 px-3 text-right">NET CONTRIBUTION MARGIN</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {!profitability?.teamCostContributions || profitability.teamCostContributions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
+                        No time entries logged on this project yet. Start the timer dock to track labor costs.
+                      </td>
+                    </tr>
+                  ) : (
+                    profitability.teamCostContributions.map((tc, idx) => (
+                      <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="font-medium text-foreground">{tc.user.name}</div>
+                          <div className="text-[10px] text-muted-foreground font-mono">{tc.user.email}</div>
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono tabular-nums text-foreground">
+                          {tc.hoursLogged} hrs
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono tabular-nums text-muted-foreground">
+                          {formatINR(tc.laborCost)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono tabular-nums text-foreground">
+                          {formatINR(tc.billableValue)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-medium tabular-nums">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] ${
+                              tc.netMargin >= 0
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                            }`}
+                          >
+                            {tc.netMargin >= 0 ? "+" : ""}
+                            {formatINR(tc.netMargin)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Analytical Profit & Loss Statement (ERPNext Cost Center view) */}
+          <div className="p-5 rounded-xl border border-border/80 bg-card/60 space-y-3">
+            <div>
+              <h3 className="text-xs font-semibold text-foreground uppercase font-mono tracking-wider">
+                Analytical Cost Center P&L Statement
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Service delivery profit & loss breakdown benchmarked against project budget
+              </p>
+            </div>
+
+            <div className="p-4 bg-muted/20 border border-border/80 rounded-lg space-y-2 font-mono text-xs">
+              <div className="flex justify-between text-muted-foreground">
+                <span>(+) Gross Billed Tax Invoices:</span>
+                <span className="text-foreground">{formatINR(profitability?.totalInvoiced ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>(+) Unbilled WIP Accrued Value:</span>
+                <span className="text-amber-600 dark:text-amber-400">
+                  +{formatINR(profitability?.unbilledBillableValue ?? 0)}
+                </span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>(=) Total Effective Project Revenue:</span>
+                <span className="font-semibold text-foreground">
+                  {formatINR(
+                    (profitability?.totalInvoiced || 0) + (profitability?.unbilledBillableValue || 0)
+                  )}
+                </span>
+              </div>
+              <div className="h-px bg-border/60 my-1.5" />
+              <div className="flex justify-between text-muted-foreground">
+                <span>
+                  (-) Direct Internal Labor Cost ({profitability?.totalHoursLogged ?? 0} hrs):
+                </span>
+                <span className="text-rose-600 dark:text-rose-400">
+                  -{formatINR(profitability?.totalLaborCost ?? 0)}
+                </span>
+              </div>
+              <div className="h-px bg-border/60 my-1.5" />
+              <div className="flex justify-between text-sm font-bold">
+                <span>(=) Net Operating Gross Margin:</span>
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  {formatINR(profitability?.grossProfit ?? 0)} ({profitability?.marginPercentage ?? 0}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab: Tasks */}
       {activeTab === "tasks" && (
