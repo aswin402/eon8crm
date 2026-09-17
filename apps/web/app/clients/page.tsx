@@ -13,6 +13,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import api from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
@@ -34,11 +35,6 @@ export default function ClientsPage() {
   useEffect(() => {
     fetchClients();
   }, [search]);
-
-  const formatINR = (val: number) => {
-    if (!val) return "₹0";
-    return `₹${val.toLocaleString("en-IN")}`;
-  };
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">

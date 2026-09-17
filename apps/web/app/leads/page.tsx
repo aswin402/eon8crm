@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { formatCompactINR as formatINR } from "@/lib/utils";
 import { ConvertLeadModal } from "@/components/leads/ConvertLeadModal";
 import { NewLeadModal } from "@/components/leads/NewLeadModal";
 
@@ -153,17 +154,6 @@ export default function LeadsPage() {
     if (leadId) {
       handleStatusChange(leadId, targetStage);
     }
-  };
-
-  const formatINR = (val: number) => {
-    if (!val) return "₹0";
-    if (val >= 10000000) {
-      return `₹${(val / 10000000).toFixed(2)}Cr`;
-    }
-    if (val >= 100000) {
-      return `₹${(val / 100000).toFixed(2)}L`;
-    }
-    return `₹${val.toLocaleString("en-IN")}`;
   };
 
   // Filter leads

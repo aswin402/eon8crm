@@ -19,6 +19,7 @@ import {
   Calendar,
 } from "lucide-react";
 import api from "@/lib/api";
+import { formatCompactINR as formatINR } from "@/lib/utils";
 
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -37,14 +38,6 @@ export default function DashboardPage() {
         setLoading(false);
       });
   }, []);
-
-  const formatINR = (val: number) => {
-    if (!val) return "₹0";
-    if (val >= 100000) {
-      return `₹${(val / 100000).toFixed(2)}L`;
-    }
-    return `₹${val.toLocaleString("en-IN")}`;
-  };
 
   const kpis = dashboardData?.kpis;
   const leadFunnel = dashboardData?.leadFunnel || [];

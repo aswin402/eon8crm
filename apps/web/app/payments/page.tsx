@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 import {
   CreditCard,
   Building2,
@@ -104,7 +105,7 @@ export default function PaymentsPage() {
             <ShieldCheck className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            ₹{totalCollected.toLocaleString("en-IN")}
+            {formatINR(totalCollected)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">Cleared in corporate bank accounts</p>
         </div>
@@ -126,7 +127,7 @@ export default function PaymentsPage() {
             <DollarSign className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            ₹{payments.length > 0 ? Math.round(totalCollected / payments.length).toLocaleString("en-IN") : 0}
+            {formatINR(payments.length > 0 ? Math.round(totalCollected / payments.length) : 0)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">Per transaction ticket</p>
         </div>
@@ -225,7 +226,7 @@ export default function PaymentsPage() {
                     </td>
 
                     <td className="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
-                      ₹{Number(p.amount).toLocaleString("en-IN")}
+                      {formatINR(p.amount)}
                     </td>
                   </tr>
                 ))

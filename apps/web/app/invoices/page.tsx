@@ -19,6 +19,7 @@ import {
 import api from "@/lib/api";
 import { InvoicePreviewModal } from "@/components/invoices/InvoicePreviewModal";
 import { toast } from "@/components/ui/toast";
+import { formatINR } from "@/lib/utils";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -67,11 +68,6 @@ export default function InvoicesPage() {
   useEffect(() => {
     fetchInvoices();
   }, [statusFilter]);
-
-  const formatINR = (val: number) => {
-    if (!val) return "₹0";
-    return `₹${Number(val).toLocaleString("en-IN")}`;
-  };
 
   // KPIs
   const totalInvoiced = invoices.reduce((acc, inv) => acc + Number(inv.totalAmount || 0), 0);

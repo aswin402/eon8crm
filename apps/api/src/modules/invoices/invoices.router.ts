@@ -6,6 +6,13 @@ import { requireAuth, requireRole } from "../../middleware/rbac";
 const invoicesRouter = new Hono();
 invoicesRouter.use("*", requireAuth);
 
+// Statutory GST Tax Constants for IT & Software Professional Services (SAC 998314)
+export const GST_CONFIG = {
+  INTERSTATE_IGST_RATE: 0.18,
+  INTRASTATE_CGST_RATE: 0.09,
+  INTRASTATE_SGST_RATE: 0.09,
+};
+
 // 1. List Invoices
 invoicesRouter.get("/", async (c) => {
   const status = c.req.query("status");
@@ -289,10 +296,10 @@ invoicesRouter.post("/", requireRole(["FINANCE", "ADMIN"]), async (c) => {
   let igstAmount = 0;
 
   if (isInterstate) {
-    igstAmount = Math.round(subTotal * 0.18 * 100) / 100;
+    igstAmount = Math.round(subTotal * GST_CONFIG.INTERSTATE_IGST_RATE * 100) / 100;
   } else {
-    cgstAmount = Math.round(subTotal * 0.09 * 100) / 100;
-    sgstAmount = Math.round(subTotal * 0.09 * 100) / 100;
+    cgstAmount = Math.round(subTotal * GST_CONFIG.INTRASTATE_CGST_RATE * 100) / 100;
+    sgstAmount = Math.round(subTotal * GST_CONFIG.INTRASTATE_SGST_RATE * 100) / 100;
   }
 
   const totalAmount = subTotal + cgstAmount + sgstAmount + igstAmount;

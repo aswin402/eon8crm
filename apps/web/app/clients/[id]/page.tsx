@@ -22,6 +22,7 @@ import {
   Layers,
 } from "lucide-react";
 import api from "@/lib/api";
+import { formatCompactINR as formatINR } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
 import { InvoicePreviewModal } from "@/components/invoices/InvoicePreviewModal";
 
@@ -45,14 +46,6 @@ export default function Client360Page() {
         .finally(() => setLoading(false));
     }
   }, [clientId]);
-
-  const formatINR = (val: number) => {
-    if (!val) return "₹0";
-    if (val >= 100000) {
-      return `₹${(val / 100000).toFixed(2)}L`;
-    }
-    return `₹${val.toLocaleString("en-IN")}`;
-  };
 
   if (loading) {
     return (

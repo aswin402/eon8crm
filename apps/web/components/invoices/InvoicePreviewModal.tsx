@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import api from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 
 interface InvoiceItem {
   id: string;
@@ -145,11 +146,6 @@ export function InvoicePreviewModal({ invoiceId, onClose, onRecordPayment }: Inv
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const formatINR = (val: number | string | undefined) => {
-    if (val === undefined || val === null) return "₹0.00";
-    return `₹${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   if (loading) {

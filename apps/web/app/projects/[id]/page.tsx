@@ -25,6 +25,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import api from "@/lib/api";
+import { formatCompactINR as formatINR } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
 
 interface Assignee {
@@ -245,13 +246,6 @@ export default function ProjectDetailPage() {
     } catch (err: any) {
       setFeedback({ type: "error", text: "Failed to update milestone." });
     }
-  };
-
-  const formatINR = (val: number) => {
-    if (!val) return "₹0";
-    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)}Cr`;
-    if (val >= 100000) return `₹${(val / 100000).toFixed(2)}L`;
-    return `₹${val.toLocaleString("en-IN")}`;
   };
 
   // Calculations

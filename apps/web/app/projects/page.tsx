@@ -15,6 +15,7 @@ import {
   Filter,
 } from "lucide-react";
 import api from "@/lib/api";
+import { formatCompactINR as formatINR } from "@/lib/utils";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -36,14 +37,6 @@ export default function ProjectsPage() {
   useEffect(() => {
     fetchProjects();
   }, [statusFilter]);
-
-  const formatINR = (val: number) => {
-    if (!val) return "₹0";
-    if (val >= 100000) {
-      return `₹${(val / 100000).toFixed(2)}L`;
-    }
-    return `₹${val.toLocaleString("en-IN")}`;
-  };
 
   // Summary metrics
   const activeCount = projects.filter((p) => p.status === "ACTIVE").length;

@@ -17,6 +17,7 @@ import {
   Download,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { formatINR } from "@/lib/utils";
 
 interface ExpenseItem {
   id: string;
@@ -231,7 +232,7 @@ export default function ExpensesPage() {
             <DollarSign className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            ₹{(summary?.totalAmount || 0).toLocaleString("en-IN")}
+            {formatINR(summary?.totalAmount || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">{summary?.count || 0} recorded items</p>
         </div>
@@ -242,7 +243,7 @@ export default function ExpensesPage() {
             <Building2 className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            ₹{(summary?.byCategory.find((c) => c.category === "Salaries")?.total || 0).toLocaleString("en-IN")}
+            {formatINR(summary?.byCategory.find((c) => c.category === "Salaries")?.total || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">Engineering & management</p>
         </div>
@@ -253,7 +254,7 @@ export default function ExpensesPage() {
             <CreditCard className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            ₹{(summary?.byCategory.find((c) => c.category === "Software")?.total || 0).toLocaleString("en-IN")}
+            {formatINR(summary?.byCategory.find((c) => c.category === "Software")?.total || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">SaaS licenses & AWS</p>
         </div>
@@ -264,7 +265,7 @@ export default function ExpensesPage() {
             <PieChart className="w-4 h-4 text-muted-foreground/70" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            ₹{(summary?.byCategory.find((c) => c.category === "Rent")?.total || 0).toLocaleString("en-IN")}
+            {formatINR(summary?.byCategory.find((c) => c.category === "Rent")?.total || 0)}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">Office lease expenses</p>
         </div>
@@ -351,7 +352,7 @@ export default function ExpensesPage() {
                     <td className="py-2.5 px-4 font-medium text-foreground">{exp.description}</td>
                     <td className="py-2.5 px-4 text-muted-foreground">{exp.vendor || "—"}</td>
                     <td className="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
-                      ₹{Number(exp.amount).toLocaleString("en-IN")}
+                      {formatINR(exp.amount)}
                     </td>
                     <td className="py-2.5 px-4 text-center">
                       <button

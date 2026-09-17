@@ -19,6 +19,7 @@ import {
   Download,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { formatHoursMinutes, formatINR } from "@/lib/utils";
 
 interface TimeEntry {
   id: string;
@@ -159,12 +160,6 @@ export default function TimeTrackingPage() {
     }
   };
 
-  const formatHoursMinutes = (mins: number) => {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${h}h ${m}m`;
-  };
-
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Page Header */}
@@ -242,7 +237,7 @@ export default function TimeTrackingPage() {
         <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
           <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Billable Value</span>
           <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            ₹{Math.round(totalBillableValue).toLocaleString("en-IN")}
+            {formatINR(totalBillableValue)}
           </div>
           <p className="text-[11px] text-muted-foreground">Gross client labor value</p>
         </div>
