@@ -211,6 +211,189 @@ invoicesRouter.get("/export/tally", async (c) => {
   return c.body(csvContent);
 });
 
+// 1.4 Accounts Receivable (AR) Aging Analysis & Debtor Aging Buckets (ERPNext AR Engine)
+invoicesRouter.get("/aging", async (c) => {
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      status: { in: ["SENT", "PARTIAL", "OVERDUE"] },
+    },
+    include: {
+      client: {
+        select: {
+          id: true,
+          clientNumber: true,
+          companyName: true,
+          contactPerson: true,
+          email: true,
+          phone: true,
+          paymentTerms: true,
+        },
+      },
+      project: {
+        select: { id: true, name: true },
+      },
+    },
+    orderBy: { dueDate: "asc" },
+  });
+
+  const now = new Date();
+
+  // Aging Buckets accumulator
+  let totalOutstanding = 0;
+  let currentAmount = 0;        // Not yet overdue (or <= 0 days overdue)
+  let overdue1to30Amount = 0;   // 1 - 30 days overdue
+  let overdue31to60Amount = 0;  // 31 - 60 days overdue
+  let overdue61to90Amount = 0;  // 61 - 90 days overdue
+  let overdue90PlusAmount = 0;  // > 90 days overdue (Critical)
+
+  let currentCount = 0;
+  let overdue1to30Count = 0;
+  let overdue31to60Count = 0;
+  let overdue61to90Count = 0;
+  let overdue90PlusCount = 0;
+
+  // Client debtor grouping map
+  const clientMap = new Map<string, any>();
+
+  const processedInvoices = invoices
+    .map((inv) => {
+      const total = Number(inv.totalAmount);
+      const paid = Number(inv.paidAmount);
+      const balance = Math.max(0, total - paid);
+
+      if (balance <= 0) return null;
+
+      const dueDate = new Date(inv.dueDate);
+      const diffMs = now.getTime() - dueDate.getTime();
+      const daysOverdue = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      let bucket: "CURRENT" | "1-30" | "31-60" | "61-90" | "90+";
+      if (daysOverdue <= 0) {
+        bucket = "CURRENT";
+        currentAmount += balance;
+        currentCount++;
+      } else if (daysOverdue <= 30) {
+        bucket = "1-30";
+        overdue1to30Amount += balance;
+        overdue1to30Count++;
+      } else if (daysOverdue <= 60) {
+        bucket = "31-60";
+        overdue31to60Amount += balance;
+        overdue31to60Count++;
+      } else if (daysOverdue <= 90) {
+        bucket = "61-90";
+        overdue61to90Amount += balance;
+        overdue61to90Count++;
+      } else {
+        bucket = "90+";
+        overdue90PlusAmount += balance;
+        overdue90PlusCount++;
+      }
+
+      totalOutstanding += balance;
+
+      // Group by client
+      const cId = inv.client.id;
+      if (!clientMap.has(cId)) {
+        clientMap.set(cId, {
+          client: inv.client,
+          totalOutstanding: 0,
+          current: 0,
+          overdue1to30: 0,
+          overdue31to60: 0,
+          overdue61to90: 0,
+          overdue90Plus: 0,
+          maxDaysOverdue: 0,
+          oldestDueDate: inv.dueDate,
+          invoices: [],
+        });
+      }
+
+      const clientEntry = clientMap.get(cId);
+      clientEntry.totalOutstanding += balance;
+      if (bucket === "CURRENT") clientEntry.current += balance;
+      else if (bucket === "1-30") clientEntry.overdue1to30 += balance;
+      else if (bucket === "31-60") clientEntry.overdue31to60 += balance;
+      else if (bucket === "61-90") clientEntry.overdue61to90 += balance;
+      else if (bucket === "90+") clientEntry.overdue90Plus += balance;
+
+      if (daysOverdue > clientEntry.maxDaysOverdue) {
+        clientEntry.maxDaysOverdue = daysOverdue;
+      }
+
+      const invSummary = {
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        issueDate: inv.issueDate,
+        dueDate: inv.dueDate,
+        totalAmount: total,
+        paidAmount: paid,
+        balance,
+        daysOverdue: Math.max(0, daysOverdue),
+        bucket,
+        status: inv.status,
+        projectName: inv.project?.name,
+      };
+
+      clientEntry.invoices.push(invSummary);
+      return {
+        ...invSummary,
+        client: inv.client,
+      };
+    })
+    .filter(Boolean);
+
+  // Calculate Days Sales Outstanding (DSO) over the last 90 days
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const sales90Days = await prisma.invoice.aggregate({
+    where: {
+      issueDate: { gte: ninetyDaysAgo },
+      status: { notIn: ["DRAFT", "CANCELLED"] },
+    },
+    _sum: { totalAmount: true },
+  });
+
+  const totalSales90 = Number(sales90Days._sum.totalAmount || 0);
+  const dso = totalSales90 > 0 ? Math.round((totalOutstanding / totalSales90) * 90) : 0;
+
+  // Format client debtors summaries
+  const debtors = Array.from(clientMap.values())
+    .map((entry) => ({
+      ...entry,
+      totalOutstanding: Math.round(entry.totalOutstanding),
+      current: Math.round(entry.current),
+      overdue1to30: Math.round(entry.overdue1to30),
+      overdue31to60: Math.round(entry.overdue31to60),
+      overdue61to90: Math.round(entry.overdue61to90),
+      overdue90Plus: Math.round(entry.overdue90Plus),
+      totalOverdue: Math.round(
+        entry.overdue1to30 + entry.overdue31to60 + entry.overdue61to90 + entry.overdue90Plus
+      ),
+      invoicesCount: entry.invoices.length,
+    }))
+    .sort((a, b) => b.totalOutstanding - a.totalOutstanding);
+
+  return c.json({
+    summary: {
+      totalOutstanding: Math.round(totalOutstanding),
+      totalOverdue: Math.round(
+        overdue1to30Amount + overdue31to60Amount + overdue61to90Amount + overdue90PlusAmount
+      ),
+      dso,
+      buckets: {
+        current: { amount: Math.round(currentAmount), count: currentCount },
+        overdue1to30: { amount: Math.round(overdue1to30Amount), count: overdue1to30Count },
+        overdue31to60: { amount: Math.round(overdue31to60Amount), count: overdue31to60Count },
+        overdue61to90: { amount: Math.round(overdue61to90Amount), count: overdue61to90Count },
+        overdue90Plus: { amount: Math.round(overdue90PlusAmount), count: overdue90PlusCount },
+      },
+      totalUnpaidInvoices: processedInvoices.length,
+    },
+    debtors,
+    invoices: processedInvoices,
+  });
+});
+
 // 2. Invoice Details with line items and payments
 invoicesRouter.get("/:id", async (c) => {
   const id = c.req.param("id");
@@ -232,6 +415,134 @@ invoicesRouter.get("/:id", async (c) => {
   const remainingBalance = Number(invoice.totalAmount) - Number(invoice.paidAmount);
 
   return c.json({ invoice: { ...invoice, remainingBalance } });
+});
+
+// 2.1 Multi-tier Dunning Notice Generation & Activity Log Dispatch
+const dunningSchema = z.object({
+  level: z.enum(["AUTO", "LEVEL_1", "LEVEL_2", "LEVEL_3"]).default("AUTO"),
+  includeInterest: z.boolean().default(true),
+  interestRatePerAnnum: z.number().default(18),
+  customRemarks: z.string().optional(),
+});
+
+invoicesRouter.post("/:id/dunning", requireRole(["FINANCE", "ADMIN"]), async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  const parsed = dunningSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: "Validation failed", details: parsed.error.issues }, 400);
+  }
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+    include: {
+      client: true,
+      project: true,
+    },
+  });
+
+  if (!invoice) {
+    return c.json({ error: "Invoice not found" }, 404);
+  }
+
+  const total = Number(invoice.totalAmount);
+  const paid = Number(invoice.paidAmount);
+  const balance = Math.max(0, total - paid);
+
+  if (balance <= 0) {
+    return c.json({ error: "Invoice is already fully settled. No dunning notice required." }, 400);
+  }
+
+  const now = new Date();
+  const dueDate = new Date(invoice.dueDate);
+  const diffMs = now.getTime() - dueDate.getTime();
+  const daysOverdue = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+  // Determine Level
+  let resolvedLevel = parsed.data.level;
+  if (resolvedLevel === "AUTO") {
+    if (daysOverdue <= 15) {
+      resolvedLevel = "LEVEL_1";
+    } else if (daysOverdue <= 45) {
+      resolvedLevel = "LEVEL_2";
+    } else {
+      resolvedLevel = "LEVEL_3";
+    }
+  }
+
+  // Calculate Interest under Section 16 MSME Act (18% p.a. default)
+  let interestAmount = 0;
+  if (parsed.data.includeInterest && daysOverdue > 0 && resolvedLevel !== "LEVEL_1") {
+    const dailyRate = (parsed.data.interestRatePerAnnum / 100) / 365;
+    interestAmount = Math.round(balance * dailyRate * daysOverdue);
+  }
+
+  const totalPayableWithInterest = balance + interestAmount;
+
+  // Generate Notice Reference Number
+  const noticeRef = `DUN-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+  // Level Titles & Formal Body text
+  let noticeTitle = "";
+  let noticeSeverity: "INFO" | "WARNING" | "CRITICAL" = "INFO";
+  let letterBody = "";
+  let settlementDeadlineDays = 7;
+
+  if (resolvedLevel === "LEVEL_1") {
+    noticeTitle = "Level 1: Polite Payment Reminder";
+    noticeSeverity = "INFO";
+    settlementDeadlineDays = 7;
+    letterBody = `This is a courteous reminder that Tax Invoice ${invoice.invoiceNumber} dated ${new Date(invoice.issueDate).toLocaleDateString("en-IN")} was due on ${new Date(invoice.dueDate).toLocaleDateString("en-IN")} and currently reflects an outstanding balance of ₹${balance.toLocaleString("en-IN")}. If payment has already been remitted, please accept our thanks and share the bank UTR reference. Otherwise, we kindly request settlement within 7 business days.`;
+  } else if (resolvedLevel === "LEVEL_2") {
+    noticeTitle = "Level 2: Formal Past-Due Commercial Notice";
+    noticeSeverity = "WARNING";
+    settlementDeadlineDays = 5;
+    letterBody = `Please be advised that Tax Invoice ${invoice.invoiceNumber} is now ${daysOverdue} days overdue. Despite previous reminders, the outstanding principal amount of ₹${balance.toLocaleString("en-IN")} remains unsettled.${interestAmount > 0 ? ` As per commercial agreement terms and the MSME Development Act, statutory delayed payment interest of ₹${interestAmount.toLocaleString("en-IN")} (@ ${parsed.data.interestRatePerAnnum}% p.a.) has accrued, bringing total dues to ₹${totalPayableWithInterest.toLocaleString("en-IN")}.` : ""} Immediate remittance is requested within 5 business days to avoid service interruption.`;
+  } else {
+    noticeTitle = "Level 3: Final Demand & Legal Suspension Warning";
+    noticeSeverity = "CRITICAL";
+    settlementDeadlineDays = 3;
+    letterBody = `FINAL DEMAND NOTICE: Tax Invoice ${invoice.invoiceNumber} is critically delinquent at ${daysOverdue} days past due date. Total outstanding principal is ₹${balance.toLocaleString("en-IN")}${interestAmount > 0 ? ` plus statutory accrued interest of ₹${interestAmount.toLocaleString("en-IN")} (Total: ₹${totalPayableWithInterest.toLocaleString("en-IN")}) under Section 16 of the MSMED Act 2006` : ""}. Failure to settle this account within 3 business days will result in immediate suspension of all active deliverables, revocation of staging access, and referral to legal counsel for recovery.`;
+  }
+
+  // Record into Client Activity Log
+  await prisma.activityLog.create({
+    data: {
+      clientId: invoice.clientId,
+      type: "NOTE",
+      content: `📢 [DUNNING NOTICE ${resolvedLevel} - ${noticeRef}]: Dispatched for Invoice ${invoice.invoiceNumber}. Outstanding: ₹${balance.toLocaleString("en-IN")}${interestAmount > 0 ? ` (+ ₹${interestAmount.toLocaleString("en-IN")} statutory interest)` : ""}. Days Overdue: ${daysOverdue}.`,
+      isInternalOnly: false,
+    },
+  });
+
+  return c.json({
+    notice: {
+      noticeReference: noticeRef,
+      level: resolvedLevel,
+      title: noticeTitle,
+      severity: noticeSeverity,
+      invoiceNumber: invoice.invoiceNumber,
+      clientName: invoice.client.companyName,
+      contactPerson: invoice.client.contactPerson,
+      email: invoice.client.email,
+      daysOverdue,
+      principalBalance: balance,
+      interestAmount,
+      totalPayable: totalPayableWithInterest,
+      settlementDeadlineDays,
+      letterBody,
+      customRemarks: parsed.data.customRemarks || null,
+      generatedAt: now.toISOString(),
+      bankDetails: {
+        beneficiary: "CELESTIALABS TECHNOLOGIES PRIVATE LIMITED",
+        bankName: "HDFC Bank Ltd",
+        accountNumber: "50200088912345",
+        ifscCode: "HDFC0000123",
+        upiId: "celestialabs@hdfcbank",
+      },
+    },
+  });
 });
 
 // 3. Pull Unbilled Hours & Completed Milestones into Invoice Items
