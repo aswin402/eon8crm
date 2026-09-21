@@ -188,7 +188,7 @@ export default function DashboardPage() {
             {loading ? (
               <div className="space-y-3 py-2">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="space-y-1.5">
+                  <div key={`funnel-skel-${i}`} className="space-y-1.5">
                     <div className="flex justify-between">
                       <Skeleton className="h-3 w-20" />
                       <Skeleton className="h-3 w-12" />
@@ -202,13 +202,15 @@ export default function DashboardPage() {
                 No active leads in pipeline.
               </p>
             ) : (
-              leadFunnel.map((stage: any) => {
+              leadFunnel.map((stage: any, index: number) => {
+                const stageName = stage.stage || stage.status || `Stage ${index + 1}`;
                 const total = kpis?.totalLeads || 1;
                 const pct = Math.round((stage.count / total) * 100);
+                const uniqueKey = stage.stage || stage.status || `lead-stage-${index}`;
                 return (
-                  <div key={stage.stage} className="space-y-1.5">
+                  <div key={uniqueKey} className="space-y-1.5">
                     <div className="flex justify-between text-xs">
-                      <span className="font-medium text-foreground">{stage.stage}</span>
+                      <span className="font-medium text-foreground">{stageName}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground font-mono">{stage.count} leads</span>
                         <span className="text-foreground font-mono font-semibold">
@@ -277,8 +279,8 @@ export default function DashboardPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  projectProfits.map((p: any) => (
-                    <TableRow key={p.id}>
+                  projectProfits.map((p: any, idx: number) => (
+                    <TableRow key={p.id || `project-profit-${idx}`}>
                       <TableCell>
                         <p className="font-semibold text-foreground">{p.name}</p>
                         <p className="text-[11px] text-muted-foreground">{p.client}</p>

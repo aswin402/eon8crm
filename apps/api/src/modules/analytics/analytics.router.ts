@@ -110,6 +110,7 @@ analyticsRouter.get("/dashboard", requireRole(["ADMIN", "SUPER_ADMIN", "PROJECT_
     },
     leadFunnel: leadsByStatus.map((s) => ({
       status: s.status,
+      stage: s.status,
       count: s._count.id,
       value: Number(s._sum.estimatedValue || 0),
     })),
