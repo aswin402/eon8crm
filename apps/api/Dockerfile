@@ -9,6 +9,9 @@ RUN bun install
 
 COPY . .
 
+# Generate Prisma Client
+RUN bunx prisma generate
+
 EXPOSE 3001
 ENV NODE_ENV=production
 
