@@ -13,6 +13,9 @@
     "build:api": "cd apps/api && bun run build",
     "lint": "bun --filter '*' lint"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@neon/config": "^1.7.2",
+    "@neon/env": "^1.4.3"
+  },
   "devDependencies": {}
 }
