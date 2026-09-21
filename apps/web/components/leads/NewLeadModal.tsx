@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { X, Plus, Loader2 } from "lucide-react";
 import api from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
 
 interface NewLeadModalProps {
   onClose: () => void;
@@ -28,6 +30,7 @@ export function NewLeadModal({ onClose, onSuccess }: NewLeadModalProps) {
     setError(null);
 
     try {
+      logger.info("DATA", `Creating new lead for company: ${companyName}`);
       await api.post("/api/v1/leads", {
         companyName,
         contactPerson,
@@ -40,9 +43,13 @@ export function NewLeadModal({ onClose, onSuccess }: NewLeadModalProps) {
         notes: notes || undefined,
       });
 
+      toast.success(`Opportunity for ${companyName} added to pipeline!`, "Lead Created");
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to create lead");
+      const msg = err.response?.data?.error || "Failed to create lead";
+      logger.error("DATA", `Lead creation failed: ${msg}`, err);
+      toast.error(msg, "Creation Failed");
+      setError(msg);
     } finally {
       setLoading(false);
     }

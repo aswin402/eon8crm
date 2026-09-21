@@ -19,6 +19,9 @@ import {
 import { toast } from "@/components/ui/toast";
 import { formatINR, formatDate } from "@/lib/utils";
 import { LogExpenseModal } from "@/components/expenses";
+import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { logger } from "@/lib/logger";
 
 interface ExpenseItem {
   id: string;
@@ -50,6 +53,7 @@ export default function ExpensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     category: "Software",
@@ -61,6 +65,7 @@ export default function ExpensesPage() {
 
   const fetchExpenses = async () => {
     setIsLoading(true);
+    logger.info("DATA", `Fetching expenses (category=${activeCategory}, search="${searchQuery}")...`);
     try {
       const res = await api.get("/api/v1/expenses", {
         params: {
@@ -68,10 +73,13 @@ export default function ExpensesPage() {
           search: searchQuery || undefined,
         },
       });
-      setExpenses(res.data.expenses || []);
+      const items = res.data.expenses || [];
+      setExpenses(items);
       setSummary(res.data.summary || null);
+      logger.info("DATA", `Loaded ${items.length} expense items`);
     } catch (err) {
-      console.error("Failed to fetch expenses:", err);
+      logger.error("DATA", "Failed to fetch expenses:", err);
+      toast.error("Failed to load business expenses");
     } finally {
       setIsLoading(false);
     }
@@ -90,6 +98,7 @@ export default function ExpensesPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setFeedbackMsg(null);
+    logger.info("FORM", "Logging new business expense", formData);
 
     try {
       await api.post("/api/v1/expenses", {
@@ -100,6 +109,7 @@ export default function ExpensesPage() {
         expenseDate: formData.expenseDate,
       });
 
+      toast.success("Expense recorded successfully.");
       setFeedbackMsg({ type: "success", text: "Expense recorded successfully." });
       setIsModalOpen(false);
       setFormData({
@@ -111,26 +121,35 @@ export default function ExpensesPage() {
       });
       fetchExpenses();
     } catch (err: any) {
+      const errorMsg = err.response?.data?.error || "Failed to record expense.";
+      logger.error("FORM", "Expense creation error:", err);
+      toast.error(errorMsg);
       setFeedbackMsg({
         type: "error",
-        text: err.response?.data?.error || "Failed to record expense.",
+        text: errorMsg,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteExpense = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this expense record?")) return;
+  const executeDeleteExpense = async () => {
+    if (!deleteTargetId) return;
 
     try {
-      await api.delete(`/api/v1/expenses/${id}`);
+      logger.info("DATA", `Deleting expense record ${deleteTargetId}`);
+      await api.delete(`/api/v1/expenses/${deleteTargetId}`);
+      toast.success("Expense deleted successfully.");
       setFeedbackMsg({ type: "success", text: "Expense deleted." });
+      setDeleteTargetId(null);
       fetchExpenses();
     } catch (err: any) {
+      const errorMsg = err.response?.data?.error || "Failed to delete expense.";
+      logger.error("DATA", "Expense delete error:", err);
+      toast.error(errorMsg);
       setFeedbackMsg({
         type: "error",
-        text: err.response?.data?.error || "Failed to delete expense.",
+        text: errorMsg,
       });
     }
   };
@@ -226,51 +245,55 @@ export default function ExpensesPage() {
       )}
 
       {/* KPI Overview Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Total Overheads</span>
-            <DollarSign className="w-4 h-4 text-muted-foreground/70" />
+      {isLoading ? (
+        <MetricCardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Total Overheads</span>
+              <DollarSign className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {formatINR(summary?.totalAmount || 0)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">{summary?.count || 0} recorded items</p>
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(summary?.totalAmount || 0)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1">{summary?.count || 0} recorded items</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Core Salaries</span>
-            <Building2 className="w-4 h-4 text-muted-foreground/70" />
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Core Salaries</span>
+              <Building2 className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {formatINR(summary?.byCategory.find((c) => c.category === "Salaries")?.total || 0)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">Engineering & management</p>
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(summary?.byCategory.find((c) => c.category === "Salaries")?.total || 0)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1">Engineering & management</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Software & Cloud</span>
-            <CreditCard className="w-4 h-4 text-muted-foreground/70" />
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Software & Cloud</span>
+              <CreditCard className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {formatINR(summary?.byCategory.find((c) => c.category === "Software")?.total || 0)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">SaaS licenses & AWS</p>
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(summary?.byCategory.find((c) => c.category === "Software")?.total || 0)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1">SaaS licenses & AWS</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Rent & Facilities</span>
-            <PieChart className="w-4 h-4 text-muted-foreground/70" />
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Infrastructure & Rent</span>
+              <PieChart className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {formatINR(summary?.byCategory.find((c) => c.category === "Rent")?.total || 0)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">Workspace & facilities</p>
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatINR(summary?.byCategory.find((c) => c.category === "Rent")?.total || 0)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1">Office lease expenses</p>
         </div>
-      </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 bg-card/50 border border-border/80 rounded-xl">
@@ -306,67 +329,64 @@ export default function ExpensesPage() {
       </div>
 
       {/* Expenses Table */}
-      <div className="bg-card/60 border border-border/80 rounded-xl shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-medium">
-                <th className="py-2.5 px-4 font-mono text-[11px]">Date</th>
-                <th className="py-2.5 px-4">Category</th>
-                <th className="py-2.5 px-4">Description</th>
-                <th className="py-2.5 px-4">Vendor / Payee</th>
-                <th className="py-2.5 px-4 text-right font-mono text-[11px]">Amount (₹)</th>
-                <th className="py-2.5 px-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                    <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-foreground" />
-                    Loading expenses...
-                  </td>
+      {isLoading ? (
+        <TableSkeleton rows={8} columns={6} />
+      ) : (
+        <div className="bg-card/60 border border-border/80 rounded-xl shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-medium">
+                  <th className="py-2.5 px-4 font-mono text-[11px]">Date</th>
+                  <th className="py-2.5 px-4">Category</th>
+                  <th className="py-2.5 px-4">Description</th>
+                  <th className="py-2.5 px-4">Vendor / Payee</th>
+                  <th className="py-2.5 px-4 text-right font-mono text-[11px]">Amount (₹)</th>
+                  <th className="py-2.5 px-4 text-center">Actions</th>
                 </tr>
-              ) : expenses.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                    <Receipt className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
-                    No expenses recorded under this filter.
-                  </td>
-                </tr>
-              ) : (
-                expenses.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-2.5 px-4 font-mono text-muted-foreground tabular-nums">
-                      {formatDate(exp.expenseDate)}
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted/40 border border-border/80 text-foreground">
-                        <span className={`w-1.5 h-1.5 rounded-full ${getCategoryDot(exp.category)}`} />
-                        {exp.category}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-4 font-medium text-foreground">{exp.description}</td>
-                    <td className="py-2.5 px-4 text-muted-foreground">{exp.vendor || "—"}</td>
-                    <td className="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
-                      {formatINR(exp.amount)}
-                    </td>
-                    <td className="py-2.5 px-4 text-center">
-                      <button
-                        onClick={() => handleDeleteExpense(exp.id)}
-                        className="p-1 rounded-md text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                        title="Delete expense"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {expenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                      <Receipt className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
+                      No expenses recorded under this filter.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  expenses.map((exp) => (
+                    <tr key={exp.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="py-2.5 px-4 font-mono text-muted-foreground tabular-nums">
+                        {formatDate(exp.expenseDate)}
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted/40 border border-border/80 text-foreground">
+                          <span className={`w-1.5 h-1.5 rounded-full ${getCategoryDot(exp.category)}`} />
+                          {exp.category}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4 font-medium text-foreground">{exp.description}</td>
+                      <td className="py-2.5 px-4 text-muted-foreground">{exp.vendor || "—"}</td>
+                      <td className="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
+                        {formatINR(exp.amount)}
+                      </td>
+                      <td className="py-2.5 px-4 text-center">
+                        <button
+                          onClick={() => setDeleteTargetId(exp.id)}
+                          className="p-1 rounded-md text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          title="Delete expense"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Log Expense Modal */}
       <LogExpenseModal
@@ -376,6 +396,17 @@ export default function ExpensesPage() {
         isSubmitting={isSubmitting}
         formData={formData}
         setFormData={setFormData}
+      />
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteTargetId}
+        title="Delete Expense Item"
+        message="Are you sure you want to permanently delete this overhead expense record? This directly affects operating profit and net margin calculations."
+        confirmText="Delete Record"
+        variant="danger"
+        onConfirm={executeDeleteExpense}
+        onCancel={() => setDeleteTargetId(null)}
       />
     </div>
   );

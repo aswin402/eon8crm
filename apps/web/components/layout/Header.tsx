@@ -33,8 +33,11 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { TimerDock } from "./TimerDock";
-import { ThemeToggle } from "../ThemeToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { api } from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface QuickSearchResult {
   id: string;
@@ -204,10 +207,22 @@ export function Header() {
     router.push(href);
   };
 
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("eon8_token");
-      window.location.href = "/login";
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      logger.info("AUTH", "User confirmed logout via header");
+      await api.post("/api/v1/auth/logout").catch(() => {});
+      toast.info("You have been signed out.", "Session Closed");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("eon8_token");
+        window.location.href = "/login";
+      }
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
     }
   };
 
@@ -435,7 +450,10 @@ export function Header() {
                     <span>Organization Settings</span>
                   </Link>
                   <button
-                    onClick={handleLogout}
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      setShowLogoutConfirm(true);
+                    }}
                     className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors text-left cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
@@ -516,6 +534,18 @@ export function Header() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        title="Sign Out Confirmation"
+        description="Are you sure you want to end your current session? You will need to sign in again to access EON8 CRM."
+        confirmLabel="Sign Out"
+        cancelLabel="Stay Signed In"
+        variant="danger"
+        isLoading={isLoggingOut}
+        onConfirm={confirmLogout}
+        onClose={() => setShowLogoutConfirm(false)}
+      />
     </>
   );
 }

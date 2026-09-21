@@ -24,7 +24,31 @@ import { PORT, CORS_ORIGINS } from "./config/env";
 
 const app = new Hono();
 
-app.use("*", httpLogger());
+// Correlation ID, Structured Request Logging and Latency Tracing
+app.use("*", async (c, next) => {
+  const reqId = c.req.header("x-request-id") || Math.random().toString(36).substring(2, 9);
+  const start = Date.now();
+  c.header("x-request-id", reqId);
+
+  await next();
+
+  const duration = Date.now() - start;
+  const status = c.res.status;
+  const method = c.req.method;
+  const path = c.req.path;
+
+  if (status >= 400) {
+    logger.warn(
+      { reqId, method, path, status, duration: `${duration}ms` },
+      `⚠️ [HTTP] ${method} ${path} -> ${status} (${duration}ms)`
+    );
+  } else {
+    logger.info(
+      { reqId, method, path, status, duration: `${duration}ms` },
+      `⚡ [HTTP] ${method} ${path} -> ${status} (${duration}ms)`
+    );
+  }
+});
 app.use(
   "*",
   cors({

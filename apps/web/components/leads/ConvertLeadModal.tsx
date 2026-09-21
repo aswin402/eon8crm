@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { X, Sparkles, Building, ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
 import api from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
 
 interface ConvertLeadModalProps {
   lead: {
@@ -38,7 +40,7 @@ export function ConvertLeadModal({ lead, onClose, onSuccess }: ConvertLeadModalP
         }
       })
       .catch((err) => {
-        console.error("Could not fetch assignable staff:", err);
+        logger.error("DATA", "Could not fetch assignable staff", err);
       });
   }, []);
 
@@ -46,11 +48,13 @@ export function ConvertLeadModal({ lead, onClose, onSuccess }: ConvertLeadModalP
     e.preventDefault();
     if (!billingAddress.trim()) {
       setError("Billing address is required for invoicing");
+      toast.warning("Billing address is required for invoicing", "Validation Missing");
       return;
     }
 
     if (!projectManagerId) {
       setError("Please select a project manager");
+      toast.warning("Please select an assigned Project Manager", "Validation Missing");
       return;
     }
 
@@ -58,6 +62,7 @@ export function ConvertLeadModal({ lead, onClose, onSuccess }: ConvertLeadModalP
     setError(null);
 
     try {
+      logger.info("DATA", `Converting won lead ${lead.leadNumber} into Client 360 & Project`);
       await api.post(`/api/v1/leads/${lead.id}/convert`, {
         gstin: gstin.trim() || undefined,
         billingAddress: billingAddress.trim(),
@@ -65,9 +70,13 @@ export function ConvertLeadModal({ lead, onClose, onSuccess }: ConvertLeadModalP
         projectBudget: Number(projectBudget),
       });
 
+      toast.success(`Successfully converted ${lead.companyName} into Client 360 & active delivery project!`, "Conversion Completed");
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.error || "Conversion failed. Check server logs.");
+      const msg = err.response?.data?.error || "Conversion failed. Check server logs.";
+      logger.error("DATA", `Lead conversion failed for ${lead.leadNumber}: ${msg}`, err);
+      toast.error(msg, "Conversion Failed");
+      setError(msg);
     } finally {
       setLoading(false);
     }

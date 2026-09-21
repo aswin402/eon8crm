@@ -14,6 +14,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
 
 const DEMO_ACCOUNTS = [
   {
@@ -74,6 +76,7 @@ export default function LoginPage() {
     const loginEmail = targetEmail || email;
 
     try {
+      logger.info("AUTH", `Initiating sign-in for ${loginEmail}`);
       const res = await api.post("/api/v1/auth/login", {
         email: loginEmail,
         password,
@@ -81,14 +84,22 @@ export default function LoginPage() {
 
       if (res.data.token) {
         localStorage.setItem("eon8_token", res.data.token);
-        window.location.href = "/";
+        const userName = res.data.user?.name || loginEmail;
+        const role = res.data.user?.role || "USER";
+        logger.info("AUTH", `Signed in successfully: ${userName} [${role}]`);
+        toast.success(`Welcome back, ${userName}! Role: ${role}`, "Authenticated");
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 300);
       }
     } catch (err: any) {
       const serverError = err.response?.data?.error;
       const networkError = err.message ? `Connection Error (${err.message})` : "Unable to reach API server.";
-      setErrorMsg(
-        serverError || (err.response ? "Invalid credentials. Please verify your email and password." : networkError)
-      );
+      const finalMsg = serverError || (err.response ? "Invalid credentials. Please verify your email and password." : networkError);
+
+      logger.error("AUTH", `Sign-in failed for ${loginEmail}: ${finalMsg}`, err);
+      setErrorMsg(finalMsg);
+      toast.error(finalMsg, "Sign In Failed");
     } finally {
       setIsLoading(false);
     }

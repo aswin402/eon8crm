@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { formatCompactINR } from "@/lib/utils";
+import { MetricCardSkeleton, TableSkeleton, Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -78,70 +80,74 @@ export default function DashboardPage() {
       </div>
 
       {/* 4 Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Active Accounts */}
-        <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-medium">Active Clients</span>
-            <Users className="w-3.5 h-3.5" />
+      {loading ? (
+        <MetricCardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Active Accounts */}
+          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="font-medium">Active Clients</span>
+              <Users className="w-3.5 h-3.5" />
+            </div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
+              {kpis?.activeClients ?? "—"}
+            </div>
+            <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">100% active</span>
+              <span>• Single source of truth</span>
+            </div>
           </div>
-          <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
-            {kpis?.activeClients ?? "—"}
-          </div>
-          <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium">100% active</span>
-            <span>• Single source of truth</span>
-          </div>
-        </div>
 
-        {/* Active Projects */}
-        <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-medium">Open Projects</span>
-            <Briefcase className="w-3.5 h-3.5" />
+          {/* Active Projects */}
+          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="font-medium">Open Projects</span>
+              <Briefcase className="w-3.5 h-3.5" />
+            </div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
+              {kpis?.openProjects ?? "—"}
+            </div>
+            <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+              <span className="text-foreground font-medium">In delivery pipeline</span>
+            </div>
           </div>
-          <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
-            {kpis?.openProjects ?? "—"}
-          </div>
-          <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
-            <span className="text-foreground font-medium">In delivery pipeline</span>
-          </div>
-        </div>
 
-        {/* Cleared Cash Collections */}
-        <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-medium">Cash Collected</span>
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+          {/* Cleared Cash Collections */}
+          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="font-medium">Cash Collected</span>
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
+              {kpis ? formatCompactINR(kpis.totalCollected) : "—"}
+            </div>
+            <div className="text-[11px] text-muted-foreground font-mono">
+              Bank settled revenue
+            </div>
           </div>
-          <div className="text-2xl font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
-            {kpis ? formatCompactINR(kpis.totalCollected) : "—"}
-          </div>
-          <div className="text-[11px] text-muted-foreground font-mono">
-            Bank settled revenue
-          </div>
-        </div>
 
-        {/* Outstanding Receivables */}
-        <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-medium">Receivables Outstanding</span>
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-          </div>
-          <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
-            {kpis ? formatCompactINR(kpis.totalOutstanding) : "—"}
-          </div>
-          <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
-            {kpis?.overdueAmount > 0 ? (
-              <span className="text-rose-600 dark:text-rose-400 font-medium">
-                {formatCompactINR(kpis.overdueAmount)} overdue
-              </span>
-            ) : (
-              <span className="text-emerald-600">0 overdue</span>
-            )}
+          {/* Outstanding Receivables */}
+          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="font-medium">Receivables Outstanding</span>
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+            </div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
+              {kpis ? formatCompactINR(kpis.totalOutstanding) : "—"}
+            </div>
+            <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+              {kpis?.overdueAmount > 0 ? (
+                <span className="text-rose-600 dark:text-rose-400 font-medium">
+                  {formatCompactINR(kpis.overdueAmount)} overdue
+                </span>
+              ) : (
+                <span className="text-emerald-600">0 overdue</span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Middle Section: Sales Funnel & Profitability */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -161,7 +167,19 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-2.5">
-            {leadFunnel.length === 0 ? (
+            {loading ? (
+              <div className="space-y-3 py-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-3 w-12" />
+                    </div>
+                    <Skeleton className="h-1.5 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : leadFunnel.length === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 No active leads in pipeline.
               </div>
@@ -219,24 +237,27 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground font-medium">
-                  <th className="pb-2 font-normal">Project & Client</th>
-                  <th className="pb-2 font-normal text-right">Invoiced</th>
-                  <th className="pb-2 font-normal text-right">Labor Cost</th>
-                  <th className="pb-2 font-normal text-right">Gross Margin</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {projectProfits.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      No active projects with logged billable time.
-                    </td>
+          {loading ? (
+            <TableSkeleton rows={4} cols={4} />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground font-medium">
+                    <th className="pb-2 font-normal">Project & Client</th>
+                    <th className="pb-2 font-normal text-right">Invoiced</th>
+                    <th className="pb-2 font-normal text-right">Labor Cost</th>
+                    <th className="pb-2 font-normal text-right">Gross Margin</th>
                   </tr>
-                ) : (
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {projectProfits.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                        No active projects with logged billable time.
+                      </td>
+                    </tr>
+                  ) : (
                   projectProfits.map((p: any) => (
                     <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-2.5">
@@ -277,8 +298,9 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </div>
+    </div>
 
       {/* Bottom Nav Cards: Quick Jump Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">

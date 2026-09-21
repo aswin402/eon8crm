@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast";
+import { MetricCardSkeleton, ListSkeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 
 interface TaskItem {
   id: string;
@@ -52,11 +54,15 @@ export default function TasksPage() {
 
   const fetchTasks = async () => {
     setIsLoading(true);
+    logger.info("DATA", "Fetching task backlog...");
     try {
       const res = await api.get("/api/v1/projects/all/tasks");
-      setTasks(res.data.tasks || []);
+      const list = res.data.tasks || [];
+      setTasks(list);
+      logger.info("DATA", `Loaded ${list.length} tasks`);
     } catch (err) {
-      console.error("Failed to load tasks:", err);
+      logger.error("DATA", "Failed to load tasks:", err);
+      toast.error("Failed to load task backlog");
     } finally {
       setIsLoading(false);
     }
@@ -67,31 +73,34 @@ export default function TasksPage() {
   }, []);
 
   const toggleTaskCompletion = async (taskId: string, currentStatus: boolean) => {
+    const nextStatus = !currentStatus;
     try {
+      logger.info("DATA", `Toggling task ${taskId} completion to ${nextStatus}`);
       await api.patch(`/api/v1/projects/tasks/${taskId}`, {
-        isCompleted: !currentStatus,
+        isCompleted: nextStatus,
       });
       setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, isCompleted: !currentStatus } : t))
+        prev.map((t) => (t.id === taskId ? { ...t, isCompleted: nextStatus } : t))
       );
-      setActionMsg(!currentStatus ? "Task marked as completed." : "Task reopened.");
-      setTimeout(() => setActionMsg(null), 3000);
+      toast.success(nextStatus ? "Task marked as completed." : "Task reopened.");
     } catch (err) {
-      console.error("Failed to update task:", err);
+      logger.error("DATA", "Failed to update task:", err);
+      toast.error("Failed to update task status");
     }
   };
 
   const startTimerOnTask = async (task: TaskItem) => {
     try {
+      logger.info("DATA", `Starting timer on task ${task.id} (${task.title})`);
       await api.post("/api/v1/time/timer/start", {
         projectId: task.project.id,
         taskId: task.id,
         description: `Working on: ${task.title}`,
       });
-      setActionMsg(`Timer active for: ${task.title}`);
-      setTimeout(() => setActionMsg(null), 3000);
+      toast.success(`Timer started for: ${task.title}`);
       window.location.reload(); // Refresh to trigger floating timer dock sync
     } catch (err: any) {
+      logger.error("DATA", "Failed to start timer:", err);
       toast.error(err.response?.data?.error || "Failed to start timer");
     }
   };
@@ -165,29 +174,33 @@ export default function TasksPage() {
       )}
 
       {/* KPI Overview Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Active Open Tasks</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-foreground">{pendingCount}</div>
-          <p className="text-[11px] text-muted-foreground">Requires completion</p>
-        </div>
-
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Urgent / High Priority</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
-            {urgentCount}
+      {isLoading ? (
+        <MetricCardSkeleton count={3} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Active Open Tasks</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-foreground">{pendingCount}</div>
+            <p className="text-[11px] text-muted-foreground">Requires completion</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Critical delivery path</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Completed Deliverables</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-            {completedCount}
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Urgent / High Priority</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
+              {urgentCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Critical delivery path</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Ready for client invoicing</p>
+
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Completed Deliverables</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+              {completedCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Ready for client invoicing</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 bg-card border border-border/80 rounded-xl shadow-2xs">
@@ -236,10 +249,7 @@ export default function TasksPage() {
       {/* Task List */}
       <div className="bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-muted-foreground">
-            <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-muted-foreground" />
-            Loading task backlog...
-          </div>
+          <ListSkeleton items={6} />
         ) : filteredTasks.length === 0 ? (
           <div className="p-12 text-center">
             <CheckSquare className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />

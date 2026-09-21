@@ -17,6 +17,8 @@ import api from "@/lib/api";
 import { Chatter } from "@/components/common/Chatter";
 import { toast } from "@/components/ui/toast";
 import { CreateTicketModal } from "@/components/tickets";
+import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -27,13 +29,19 @@ export default function TicketsPage() {
 
   const fetchTickets = () => {
     setLoading(true);
+    logger.info("DATA", `Fetching tickets (priorityFilter=${priorityFilter || "all"})...`);
     const query = priorityFilter ? `?priority=${priorityFilter}` : "";
     api
       .get(`/api/v1/tickets${query}`)
       .then((res) => {
-        setTickets(res.data.tickets || []);
+        const list = res.data.tickets || [];
+        setTickets(list);
+        logger.info("DATA", `Loaded ${list.length} support tickets`);
       })
-      .catch((err) => console.error("Tickets error:", err))
+      .catch((err) => {
+        logger.error("DATA", "Tickets error:", err);
+        toast.error("Failed to load support tickets");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -43,6 +51,7 @@ export default function TicketsPage() {
 
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     try {
+      logger.info("DATA", `Updating ticket ${ticketId} status to ${newStatus}`);
       await api.patch(`/api/v1/tickets/${ticketId}`, { status: newStatus });
       fetchTickets();
       if (selectedTicket?.id === ticketId) {
@@ -50,7 +59,8 @@ export default function TicketsPage() {
       }
       toast.success(`Ticket status updated to ${newStatus.replace(/_/g, " ")}`);
     } catch (err) {
-      toast.error("Failed to update status");
+      logger.error("DATA", "Failed to update ticket status:", err);
+      toast.error("Failed to update ticket status");
     }
   };
 
@@ -119,44 +129,51 @@ export default function TicketsPage() {
       </div>
 
       {/* KPI Overview Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Total Tickets</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            {totalCount}
+      {loading ? (
+        <MetricCardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Total Tickets</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
+              {totalCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">All client support requests</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">All client support requests</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Urgent / High</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
-            {urgentCount}
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Urgent / High</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
+              {urgentCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Critical path resolution</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Critical path resolution</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">SLA Breached</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-rose-600 dark:text-rose-400">
-            {breachedCount}
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">SLA Breached</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-rose-600 dark:text-rose-400">
+              {breachedCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Requires immediate review</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Requires immediate review</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Resolved</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-            {resolvedCount}
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Resolved</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+              {resolvedCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Closed client issues</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Closed client issues</p>
         </div>
-      </div>
+      )}
 
       {/* Tickets Table */}
-      <div className="rounded-xl bg-card border border-border/80 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+      {loading ? (
+        <TableSkeleton rows={6} columns={7} />
+      ) : (
+        <div className="rounded-xl bg-card border border-border/80 shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="bg-muted/30 border-b border-border/80 text-muted-foreground font-mono text-[11px] uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4 font-medium">Ticket #</th>
@@ -253,6 +270,7 @@ export default function TicketsPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Ticket Details Sheet Drawer */}
       {selectedTicket && (

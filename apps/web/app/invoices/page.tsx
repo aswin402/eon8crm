@@ -40,6 +40,8 @@ import {
 import { toast } from "@/components/ui/toast";
 import { formatINR, formatDate } from "@/lib/utils";
 import { Invoice, AgingReportResponse } from "@/types/schema";
+import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -87,25 +89,34 @@ export default function InvoicesPage() {
 
   const fetchInvoices = () => {
     setLoading(true);
+    logger.info("DATA", `Fetching invoices (filter=${statusFilter || "all"})...`);
     const query = statusFilter ? `?status=${statusFilter}` : "";
     api
       .get(`/api/v1/invoices${query}`)
       .then((res) => {
-        setInvoices(res.data.invoices || []);
+        const list = res.data.invoices || [];
+        setInvoices(list);
+        logger.info("DATA", `Loaded ${list.length} invoices`);
       })
-      .catch((err) => console.error("Invoices error:", err))
+      .catch((err) => {
+        logger.error("DATA", "Invoices fetch error:", err);
+        toast.error("Failed to load tax invoices");
+      })
       .finally(() => setLoading(false));
   };
 
   const fetchAgingData = () => {
     setLoadingAging(true);
+    logger.info("DATA", "Fetching AR aging & debtors report...");
     api
       .get("/api/v1/invoices/aging")
       .then((res) => {
         setAgingData(res.data);
+        logger.info("DATA", "Loaded AR aging report successfully");
       })
       .catch((err) => {
-        console.error("Failed to fetch AR aging:", err);
+        logger.error("DATA", "Failed to fetch AR aging:", err);
+        toast.error("Failed to load AR aging data");
       })
       .finally(() => setLoadingAging(false));
   };
@@ -262,6 +273,12 @@ export default function InvoicesPage() {
       </div>
 
       {activeTab === "ledger" && (
+        loading ? (
+          <div className="space-y-6">
+            <MetricCardSkeleton count={4} />
+            <TableSkeleton rows={8} columns={9} />
+          </div>
+        ) : (
         <div className="space-y-6">
           {/* Financial KPIs Strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -424,10 +441,17 @@ export default function InvoicesPage() {
         </div>
       </div>
     </div>
-  )}
+  )
+)}
 
       {/* AR Aging & Debtors Cockpit Tab View */}
       {activeTab === "aging" && (
+        loadingAging ? (
+          <div className="space-y-6">
+            <MetricCardSkeleton count={4} />
+            <TableSkeleton rows={6} columns={8} />
+          </div>
+        ) : (
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* Aging Performance & DSO Banner */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -723,7 +747,8 @@ export default function InvoicesPage() {
             </div>
           </div>
         </div>
-      )}
+      )
+    )}
 
       {/* Tax Invoice Preview & Print Modal */}
       {previewInvoiceId && (

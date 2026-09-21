@@ -31,6 +31,9 @@ import {
   ConvertQuotationModal,
   QuotationPreviewModal,
 } from "@/components/quotations";
+import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { logger } from "@/lib/logger";
 
 export default function QuotationsPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -49,9 +52,11 @@ export default function QuotationsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewQuotation, setPreviewQuotation] = useState<Quotation | null>(null);
   const [convertTargetQuotation, setConvertTargetQuotation] = useState<Quotation | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const fetchQuotations = () => {
     setLoading(true);
+    logger.info("DATA", `Fetching quotations (status=${statusFilter || "all"}, query="${searchQuery}")...`);
     const params = new URLSearchParams();
     if (statusFilter) params.append("status", statusFilter);
     if (searchQuery) params.append("search", searchQuery);
@@ -59,11 +64,13 @@ export default function QuotationsPage() {
     api
       .get(`/api/v1/quotations?${params.toString()}`)
       .then((res) => {
-        setQuotations(res.data.quotations || []);
+        const list = res.data.quotations || [];
+        setQuotations(list);
         if (res.data.stats) setStats(res.data.stats);
+        logger.info("DATA", `Loaded ${list.length} quotations`);
       })
       .catch((err) => {
-        console.error("Failed to fetch quotations:", err);
+        logger.error("DATA", "Failed to fetch quotations:", err);
         toast.error("Failed to load quotations");
       })
       .finally(() => setLoading(false));
@@ -80,21 +87,26 @@ export default function QuotationsPage() {
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
+      logger.info("DATA", `Updating quotation ${id} status to ${newStatus}`);
       await api.patch(`/api/v1/quotations/${id}`, { status: newStatus });
       toast.success(`Quotation marked as ${newStatus}`);
       fetchQuotations();
     } catch (err: any) {
+      logger.error("DATA", "Failed to update quotation", err);
       toast.error(err.response?.data?.error || "Failed to update quotation");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this quotation?")) return;
+  const executeDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await api.delete(`/api/v1/quotations/${id}`);
-      toast.success("Quotation deleted");
+      logger.info("DATA", `Executing delete for quotation ${deleteTargetId}`);
+      await api.delete(`/api/v1/quotations/${deleteTargetId}`);
+      toast.success("Quotation deleted successfully");
+      setDeleteTargetId(null);
       fetchQuotations();
     } catch (err: any) {
+      logger.error("DATA", "Failed to delete quotation", err);
       toast.error(err.response?.data?.error || "Failed to delete quotation");
     }
   };
@@ -128,47 +140,51 @@ export default function QuotationsPage() {
       </div>
 
       {/* Financial KPIs Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-            Total Quoted Pipeline
-          </span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            {formatINR(stats.totalValue)}
+      {loading ? (
+        <MetricCardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+              Total Quoted Pipeline
+            </span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
+              {formatINR(stats.totalValue)}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{stats.totalCount} formal estimates issued</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">{stats.totalCount} formal estimates issued</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-            Accepted Revenue
-          </span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-            {formatINR(stats.acceptedValue)}
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+              Accepted Revenue
+            </span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+              {formatINR(stats.acceptedValue)}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{stats.acceptedCount} deals won</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">{stats.acceptedCount} deals won</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-            Pending Decision
-          </span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
-            {stats.pendingCount}
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+              Pending Decision
+            </span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
+              {stats.pendingCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Drafts & awaiting client sign-off</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Drafts & awaiting client sign-off</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-            Proposal Win Rate
-          </span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            {conversionRate}%
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+              Proposal Win Rate
+            </span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
+              {conversionRate}%
+            </div>
+            <p className="text-[11px] text-muted-foreground">Quotations successfully closed</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Quotations successfully closed</p>
         </div>
-      </div>
+      )}
 
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -201,12 +217,11 @@ export default function QuotationsPage() {
       </div>
 
       {/* Quotations Table */}
-      <div className="rounded-xl border border-border/80 bg-card/40 overflow-hidden">
-        {loading ? (
-          <div className="py-20 text-center text-xs text-muted-foreground">
-            Loading proposals & estimates...
-          </div>
-        ) : quotations.length === 0 ? (
+      {loading ? (
+        <TableSkeleton rows={6} columns={7} />
+      ) : (
+        <div className="rounded-xl border border-border/80 bg-card/40 overflow-hidden">
+          {quotations.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <ScrollText className="w-8 h-8 text-muted-foreground mx-auto stroke-1" />
             <div className="space-y-1">
@@ -345,7 +360,7 @@ export default function QuotationsPage() {
 
                           {q.status !== "ACCEPTED" && (
                             <button
-                              onClick={() => handleDelete(q.id)}
+                              onClick={() => setDeleteTargetId(q.id)}
                               title="Delete"
                               className="p-1 rounded text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             >
@@ -362,6 +377,7 @@ export default function QuotationsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Modals */}
       {showCreateModal && (
@@ -391,6 +407,17 @@ export default function QuotationsPage() {
           }}
         />
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteTargetId}
+        title="Delete Commercial Quotation"
+        message="Are you sure you want to permanently delete this quotation proposal and its itemized line items? This action cannot be reversed."
+        confirmText="Delete Quotation"
+        variant="danger"
+        onConfirm={executeDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

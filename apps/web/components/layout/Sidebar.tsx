@@ -24,6 +24,9 @@ import {
   Command,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface NavItem {
   name: string;
@@ -101,10 +104,22 @@ export function Sidebar() {
       });
   }, []);
 
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("eon8_token");
-      window.location.href = "/login";
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      logger.info("AUTH", "User confirmed logout");
+      await api.post("/api/v1/auth/logout").catch(() => {});
+      toast.info("You have been signed out.", "Session Closed");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("eon8_token");
+        window.location.href = "/login";
+      }
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
     }
   };
 
@@ -207,7 +222,7 @@ export function Sidebar() {
             </div>
           </Link>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             title="Sign out"
             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
           >
@@ -215,6 +230,18 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        title="Sign Out Confirmation"
+        description="Are you sure you want to end your current session? You will need to sign in again to access EON8 CRM."
+        confirmLabel="Sign Out"
+        cancelLabel="Stay Signed In"
+        variant="danger"
+        isLoading={isLoggingOut}
+        onConfirm={confirmLogout}
+        onClose={() => setShowLogoutConfirm(false)}
+      />
     </aside>
   );
 }

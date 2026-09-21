@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { formatCompactINR as formatINR } from "@/lib/utils";
+import { MetricCardSkeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -24,13 +27,19 @@ export default function ProjectsPage() {
 
   const fetchProjects = () => {
     setLoading(true);
+    logger.info("DATA", `Fetching projects (filter=${statusFilter || "all"})...`);
     const query = statusFilter ? `?status=${statusFilter}` : "";
     api
       .get(`/api/v1/projects${query}`)
       .then((res) => {
-        setProjects(res.data.projects || []);
+        const list = res.data.projects || [];
+        setProjects(list);
+        logger.info("DATA", `Loaded ${list.length} projects`);
       })
-      .catch((err) => console.error("Projects error:", err))
+      .catch((err) => {
+        logger.error("DATA", "Projects error:", err);
+        toast.error("Failed to load client projects");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -101,43 +110,70 @@ export default function ProjectsPage() {
       </div>
 
       {/* KPI Overview Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Active Projects</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            {activeCount}
+      {loading ? (
+        <MetricCardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Active Projects</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
+              {activeCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{projects.length} total portfolios</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">{projects.length} total portfolios</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Total Contract Budget</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            {formatINR(totalBudget)}
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Total Contract Budget</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
+              {formatINR(totalBudget)}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Aggregated deal value</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Aggregated deal value</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Hours Tracked</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
-            {totalHours} hrs
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Hours Tracked</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
+              {totalHours} hrs
+            </div>
+            <p className="text-[11px] text-muted-foreground">Logged labor time</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Logged labor time</p>
-        </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Avg Gross Margin</span>
-          <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-            {avgMargin}%
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Avg Gross Margin</span>
+            <div className="text-xl font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+              {avgMargin}%
+            </div>
+            <p className="text-[11px] text-muted-foreground">Across delivery fleet</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">Across delivery fleet</p>
         </div>
-      </div>
+      )}
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map((p) => {
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="p-5 rounded-xl bg-card/60 border border-border/80 shadow-2xs space-y-4 animate-pulse">
+              <div className="space-y-2">
+                <div className="h-4 bg-muted/60 rounded w-2/3" />
+                <div className="h-3 bg-muted/40 rounded w-1/3" />
+              </div>
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <div className="flex justify-between">
+                  <div className="h-3 bg-muted/40 rounded w-1/4" />
+                  <div className="h-3 bg-muted/50 rounded w-1/4" />
+                </div>
+                <div className="h-2 bg-muted/40 rounded-full w-full" />
+              </div>
+              <div className="pt-2 flex justify-between items-center">
+                <div className="h-4 bg-muted/50 rounded w-1/3" />
+                <div className="h-4 bg-muted/50 rounded w-1/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects.map((p) => {
           const stats = p.stats || {};
           const isHighMargin = stats.marginHealth === "HIGH";
           const isDangerMargin = stats.marginHealth === "DANGER";
@@ -242,6 +278,7 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

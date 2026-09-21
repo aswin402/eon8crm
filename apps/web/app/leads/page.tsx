@@ -26,6 +26,9 @@ import api from "@/lib/api";
 import { formatCompactINR, formatDate } from "@/lib/utils";
 import { ConvertLeadModal } from "@/components/leads/ConvertLeadModal";
 import { NewLeadModal } from "@/components/leads/NewLeadModal";
+import { MetricCardSkeleton, KanbanColumnSkeleton, TableSkeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
 
 const PIPELINE_STAGES = [
   "NEW",
@@ -85,12 +88,18 @@ export default function LeadsPage() {
 
   const fetchLeads = () => {
     setLoading(true);
+    logger.info("DATA", "Fetching lead pipeline opportunities...");
     api
       .get("/api/v1/leads")
       .then((res) => {
-        setLeads(res.data.leads || []);
+        const leadList = res.data.leads || [];
+        setLeads(leadList);
+        logger.info("DATA", `Loaded ${leadList.length} pipeline opportunities`);
       })
-      .catch((err) => console.error("Leads error:", err))
+      .catch((err) => {
+        logger.error("DATA", "Failed to fetch leads", err);
+        toast.error("Failed to load lead opportunities. Please refresh.");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -117,9 +126,12 @@ export default function LeadsPage() {
     }
 
     try {
+      logger.info("DATA", `Updating lead ${leadId} status to ${newStatus}`);
       await api.patch(`/api/v1/leads/${leadId}/status`, { status: newStatus });
+      toast.success(`Deal moved to stage: ${newStatus}`);
     } catch (err) {
-      console.error("Failed to update status:", err);
+      logger.error("DATA", "Failed to update lead status", err);
+      toast.error("Failed to update deal stage. Reverting...");
       fetchLeads(); // Revert on failure
     }
   };
@@ -279,54 +291,64 @@ export default function LeadsPage() {
       </div>
 
       {/* KPI Overview Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
-        <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Active Pipeline</span>
-            <DollarSign className="w-4 h-4 text-muted-foreground/70" />
+      {loading ? (
+        <MetricCardSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Active Pipeline</span>
+              <DollarSign className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {formatCompactINR(totalPipelineValue)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{activeLeads.length} open opportunities</p>
           </div>
-          <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatCompactINR(totalPipelineValue)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{activeLeads.length} open opportunities</p>
-        </div>
 
-        <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Closed Won</span>
-            <TrendingUp className="w-4 h-4 text-emerald-500/80" />
+          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Closed Won</span>
+              <TrendingUp className="w-4 h-4 text-emerald-500/80" />
+            </div>
+            <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {formatCompactINR(totalWonValue)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{wonLeads.length} converted accounts</p>
           </div>
-          <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatCompactINR(totalWonValue)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{wonLeads.length} converted accounts</p>
-        </div>
 
-        <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Win Rate</span>
-            <CheckCircle2 className="w-4 h-4 text-muted-foreground/70" />
+          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Win Rate</span>
+              <CheckCircle2 className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {winRate}%
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Won vs. total pipeline</p>
           </div>
-          <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {winRate}%
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Won vs. total pipeline</p>
-        </div>
 
-        <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-            <span>Average Deal Size</span>
-            <Briefcase className="w-4 h-4 text-muted-foreground/70" />
+          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+              <span>Average Deal Size</span>
+              <Briefcase className="w-4 h-4 text-muted-foreground/70" />
+            </div>
+            <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
+              {formatCompactINR(avgDealSize)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Per captured lead</p>
           </div>
-          <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
-            {formatCompactINR(avgDealSize)}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Per captured lead</p>
         </div>
-      </div>
+      )}
 
       {/* Main Board Canvas */}
-      {viewMode === "kanban" ? (
+      {loading ? (
+        viewMode === "kanban" ? (
+          <KanbanColumnSkeleton count={6} />
+        ) : (
+          <TableSkeleton rows={8} columns={7} />
+        )
+      ) : viewMode === "kanban" ? (
         <div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
           <div className="flex gap-3 min-w-[1450px] h-full items-start">
             {PIPELINE_STAGES.map((stage) => {
