@@ -19,8 +19,10 @@ import {
   ArrowUpRight,
   RefreshCw,
   Search,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 interface CalendarEvent {
   id: string;
@@ -77,38 +79,45 @@ export default function CalendarPage() {
       case "INVOICE_DUE":
         if (status === "OVERDUE") {
           return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-mono font-medium text-foreground">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Overdue
-            </span>
+            <Badge variant="outline" className="gap-1.5 font-mono text-[11px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" /> Overdue
+            </Badge>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-mono font-medium text-foreground">
+          <Badge variant="outline" className="gap-1.5 font-mono text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Invoice Due
-          </span>
+          </Badge>
         );
       case "PROJECT_DEADLINE":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-mono font-medium text-foreground">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Project Target
-          </span>
+          <Badge variant="outline" className="gap-1.5 font-mono text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Project Target
+          </Badge>
         );
       case "TICKET_SLA":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-mono font-medium text-foreground">
+          <Badge
+            variant="outline"
+            className={`gap-1.5 font-mono text-[11px] ${
+              priority === "URGENT"
+                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+            }`}
+          >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                priority === "URGENT" ? "bg-rose-500" : "bg-amber-500"
+                priority === "URGENT" ? "bg-rose-500 animate-pulse" : "bg-amber-500"
               }`}
             />
             SLA Target
-          </span>
+          </Badge>
         );
       case "ACTIVITY":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-mono font-medium text-foreground">
+          <Badge variant="outline" className="gap-1.5 font-mono text-[11px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Follow-up
-          </span>
+          </Badge>
         );
     }
   };
@@ -135,11 +144,12 @@ export default function CalendarPage() {
           <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-1">
             <span>Operations</span>
             <span>/</span>
-            <span className="text-foreground font-medium">Centralized Schedule</span>
+            <span className="text-amber-500 dark:text-amber-400 font-semibold">Centralized Schedule</span>
           </div>
           <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2.5">
-            <CalendarDays className="w-5 h-5 text-muted-foreground" />
+            <CalendarDays className="w-5 h-5 text-amber-500" />
             <span>Master Operational Calendar</span>
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Unified chronological schedule of project milestones, invoice settlements, and support SLAs.
@@ -150,7 +160,7 @@ export default function CalendarPage() {
           <button
             onClick={fetchEvents}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border/80 bg-background text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
@@ -160,8 +170,9 @@ export default function CalendarPage() {
 
       {/* KPI Overview Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Project Milestones</span>
+        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] space-y-1 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+          <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 uppercase tracking-wider font-medium">Project Milestones</span>
           <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
             {events.filter((e) => e.type === "PROJECT_DEADLINE").length}
           </div>
@@ -196,7 +207,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 bg-card border border-border/80 rounded-xl shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 bg-card/50 border border-border/80 rounded-xl shadow-2xs">
         <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
           <div className="flex items-center bg-muted/40 border border-border/80 p-0.5 rounded-lg text-xs">
             {[
@@ -213,7 +224,7 @@ export default function CalendarPage() {
                   onClick={() => setActiveFilter(tab.key)}
                   className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-background text-foreground shadow-2xs"
+                      ? "bg-amber-500 text-slate-950 font-semibold shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -231,28 +242,28 @@ export default function CalendarPage() {
             placeholder="Search schedule events..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border/80 rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/20 border border-border/80 rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-hidden focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
           />
         </div>
       </div>
 
       {/* Event Agenda & Timeline */}
-      <div className="bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
+      <div className="bg-card/60 border border-border/80 rounded-xl shadow-2xs overflow-hidden">
         <div className="px-4 py-3 border-b border-border/80 bg-muted/20 flex items-center justify-between">
-          <span className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider">
-            Operational Schedule Timeline ({filteredEvents.length})
+          <span className="text-xs font-mono font-medium text-foreground uppercase tracking-wider">
+            Operational Schedule Timeline <span className="text-amber-500 dark:text-amber-400">({filteredEvents.length})</span>
           </span>
           <span className="text-[11px] text-muted-foreground font-mono">Chronological order</span>
         </div>
 
         {isLoading ? (
           <div className="p-12 text-center text-xs text-muted-foreground">
-            <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-muted-foreground" />
+            <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-amber-500" />
             Loading centralized calendar schedule...
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="p-12 text-center">
-            <CalendarDays className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+            <CalendarDays className="w-8 h-8 mx-auto text-amber-500/40 mb-2" />
             <p className="text-sm font-semibold text-foreground">No events found</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               There are no scheduled deliverables or invoice due dates matching your filter.
@@ -267,12 +278,12 @@ export default function CalendarPage() {
               return (
                 <div
                   key={ev.id}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/20 transition-colors"
+                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-amber-500/[0.03] transition-colors"
                 >
                   <div className="flex items-start gap-3.5">
                     {/* Date Block */}
-                    <div className="w-12 h-12 rounded-lg border border-border/80 bg-muted/30 flex flex-col items-center justify-center shrink-0 text-center font-mono">
-                      <span className="text-[10px] uppercase font-medium text-muted-foreground">
+                    <div className="w-12 h-12 rounded-lg border border-amber-500/20 bg-amber-500/5 flex flex-col items-center justify-center shrink-0 text-center font-mono">
+                      <span className="text-[10px] uppercase font-medium text-amber-600 dark:text-amber-400">
                         {eventDate.toLocaleString("default", { month: "short" })}
                       </span>
                       <span className="text-base font-semibold leading-none text-foreground">
@@ -318,10 +329,10 @@ export default function CalendarPage() {
 
                     <Link
                       href={ev.link}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border border-border/80 bg-background text-foreground hover:bg-muted transition-colors shadow-2xs"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors shadow-2xs"
                     >
                       <span>View</span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground" />
+                      <ArrowUpRight className="w-3.5 h-3.5 text-amber-500" />
                     </Link>
                   </div>
                 </div>

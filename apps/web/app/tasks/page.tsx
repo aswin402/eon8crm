@@ -21,6 +21,7 @@ import Link from "next/link";
 import { toast } from "@/components/ui/toast";
 import { MetricCardSkeleton, ListSkeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
+import { Badge } from "@/components/ui/badge";
 
 interface TaskItem {
   id: string;
@@ -120,16 +121,16 @@ export default function TasksPage() {
     return true;
   });
 
-  const getPriorityBadge = (p: TaskItem["priority"]) => {
+  const getPriorityVariant = (p: TaskItem["priority"]) => {
     switch (p) {
       case "URGENT":
-        return "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400 border-red-200";
+        return "destructive" as const;
       case "HIGH":
-        return "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border-amber-200";
+        return "amber" as const;
       case "MEDIUM":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border-blue-200";
+        return "info" as const;
       default:
-        return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200";
+        return "outline" as const;
     }
   };
 
@@ -212,7 +213,7 @@ export default function TasksPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                   activeTab === tab
-                    ? "bg-background text-foreground shadow-2xs"
+                    ? "bg-amber-500 text-slate-950 font-semibold shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -224,7 +225,7 @@ export default function TasksPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="text-xs bg-background border border-border/80 rounded-md px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+            className="text-xs bg-background border border-border/80 rounded-md px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
           >
             <option value="ALL">All Priorities</option>
             <option value="URGENT">Urgent</option>
@@ -241,7 +242,7 @@ export default function TasksPage() {
             placeholder="Search tasks, project..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border/80 rounded-md text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/30 border border-border/80 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
           />
         </div>
       </div>
@@ -263,12 +264,12 @@ export default function TasksPage() {
             {filteredTasks.map((task) => (
               <div
                 key={task.id}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/20 transition-colors"
+                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/20 transition-colors group"
               >
                 <div className="flex items-start gap-3">
                   <button
                     onClick={() => toggleTaskCompletion(task.id, task.isCompleted)}
-                    className="mt-0.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    className="mt-0.5 text-muted-foreground hover:text-amber-500 transition-colors cursor-pointer"
                     title={task.isCompleted ? "Reopen task" : "Mark as done"}
                   >
                     {task.isCompleted ? (
@@ -280,7 +281,7 @@ export default function TasksPage() {
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-mono font-medium text-foreground">
+                      <Badge variant={getPriorityVariant(task.priority)} className="gap-1.5 font-mono text-[10px]">
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             task.priority === "URGENT"
@@ -291,7 +292,7 @@ export default function TasksPage() {
                           }`}
                         />
                         {task.priority}
-                      </span>
+                      </Badge>
 
                       <Link
                         href="/projects"
@@ -305,7 +306,7 @@ export default function TasksPage() {
 
                     <h3
                       className={`text-sm font-medium ${
-                        task.isCompleted ? "line-through text-muted-foreground" : "text-foreground"
+                        task.isCompleted ? "line-through text-muted-foreground" : "text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors"
                       }`}
                     >
                       {task.title}
@@ -331,10 +332,10 @@ export default function TasksPage() {
                   {!task.isCompleted && (
                     <button
                       onClick={() => startTimerOnTask(task)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/80 bg-background hover:bg-muted text-foreground text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/80 bg-background hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-600 dark:hover:text-amber-400 text-foreground text-xs font-medium transition-all shadow-2xs cursor-pointer"
                       title="Start live timer on this task"
                     >
-                      <Play className="w-3 h-3 fill-current text-muted-foreground" />
+                      <Play className="w-3 h-3 fill-current text-amber-500" />
                       <span>Start Timer</span>
                     </button>
                   )}

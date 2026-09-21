@@ -34,6 +34,16 @@ import {
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { logger } from "@/lib/logger";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function QuotationsPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -129,13 +139,15 @@ export default function QuotationsPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background hover:bg-foreground/90 rounded-md text-xs font-medium transition-colors cursor-pointer shadow-2xs"
+            variant="amber"
+            size="sm"
+            className="gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Quotation</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -239,142 +251,141 @@ export default function QuotationsPage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border/80 bg-muted/20 text-muted-foreground font-mono text-[11px]">
-                  <th className="py-3 px-4 font-medium">QUOTE #</th>
-                  <th className="py-3 px-4 font-medium">CLIENT / PROSPECT</th>
-                  <th className="py-3 px-4 font-medium">DATE / VALIDITY</th>
-                  <th className="py-3 px-4 font-medium text-right">SUBTOTAL</th>
-                  <th className="py-3 px-4 font-medium text-right">GST (18%)</th>
-                  <th className="py-3 px-4 font-medium text-right">TOTAL AMOUNT</th>
-                  <th className="py-3 px-4 font-medium text-center">STATUS</th>
-                  <th className="py-3 px-4 font-medium text-right">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {quotations.map((q) => {
-                  const isExpired = new Date(q.validUntil) < new Date() && q.status !== "ACCEPTED";
-                  const taxAmount = q.isInterstate ? q.igstAmount : q.cgstAmount + q.sgstAmount;
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>QUOTE #</TableHead>
+                <TableHead>CLIENT / PROSPECT</TableHead>
+                <TableHead>DATE / VALIDITY</TableHead>
+                <TableHead className="text-right">SUBTOTAL</TableHead>
+                <TableHead className="text-right">GST (18%)</TableHead>
+                <TableHead className="text-right">TOTAL AMOUNT</TableHead>
+                <TableHead className="text-center">STATUS</TableHead>
+                <TableHead className="text-right">ACTIONS</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {quotations.map((q) => {
+                const isExpired = new Date(q.validUntil) < new Date() && q.status !== "ACCEPTED";
+                const taxAmount = q.isInterstate ? q.igstAmount : q.cgstAmount + q.sgstAmount;
 
-                  return (
-                    <tr key={q.id} className="hover:bg-muted/30 transition-colors group">
-                      <td className="py-3 px-4">
-                        <span className="font-mono font-medium text-foreground">{q.quotationNumber}</span>
-                        {q.convertedProjectId && (
-                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Converted to Project</span>
-                          </div>
+                return (
+                  <TableRow key={q.id}>
+                    <TableCell>
+                      <span className="font-mono font-semibold text-foreground">{q.quotationNumber}</span>
+                      {q.convertedProjectId && (
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Converted to Project</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-foreground">{q.companyName}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {q.contactPerson} • {q.email}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-foreground">{formatDate(q.issueDate)}</div>
+                      <div className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
+                        <span>Valid: {formatDate(q.validUntil)}</span>
+                        {isExpired && (
+                          <span className="text-amber-500 font-medium">(Expired)</span>
                         )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-foreground">{q.companyName}</div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {q.contactPerson} • {q.email}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="text-foreground">{formatDate(q.issueDate)}</div>
-                        <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <span>Valid: {formatDate(q.validUntil)}</span>
-                          {isExpired && (
-                            <span className="text-amber-500 font-medium">(Expired)</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono tabular-nums text-muted-foreground">
-                        {formatINR(q.subTotal)}
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono tabular-nums text-muted-foreground">
-                        {formatINR(taxAmount)}
-                        <span className="text-[10px] ml-1 text-muted-foreground/70">
-                          {q.isInterstate ? "IGST" : "GST"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
-                        {formatINR(q.totalAmount)}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium font-mono ${
-                            q.status === "ACCEPTED"
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                              : q.status === "SENT"
-                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                              : q.status === "REJECTED"
-                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                              : "bg-muted text-muted-foreground border border-border"
-                          }`}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums text-muted-foreground">
+                      {formatINR(q.subTotal)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums text-muted-foreground">
+                      {formatINR(taxAmount)}
+                      <span className="text-[10px] ml-1 text-muted-foreground/70">
+                        {q.isInterstate ? "IGST" : "GST"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-semibold tabular-nums text-foreground">
+                      {formatINR(q.totalAmount)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={
+                          q.status === "ACCEPTED"
+                            ? "success"
+                            : q.status === "SENT"
+                            ? "info"
+                            : q.status === "REJECTED"
+                            ? "destructive"
+                            : "amber"
+                        }
+                        className="font-mono text-[10px]"
+                      >
+                        {q.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setPreviewQuotation(q)}
+                          title="Preview Proposal"
+                          className="p-1.5 rounded-md border border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
                         >
-                          {q.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Public Client Proposal Portal Link */}
+                        <button
+                          onClick={() => {
+                            const token = q.shareToken || q.id;
+                            const url = `${window.location.origin}/p/quote/${token}`;
+                            navigator.clipboard.writeText(url);
+                            toast.success("Client portal link copied to clipboard!");
+                          }}
+                          title="Copy Public Client Proposal Link"
+                          className="p-1.5 rounded-md border border-border/80 text-muted-foreground hover:text-amber-500 hover:border-amber-500/30 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                        >
+                          <Globe className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* 1-Click Convert to Project & Invoice button */}
+                        {!q.convertedProjectId && (
                           <button
-                            onClick={() => setPreviewQuotation(q)}
-                            title="Preview Proposal"
-                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+                            onClick={() => setConvertTargetQuotation(q)}
+                            title="1-Click Convert to Project & Invoice"
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
                           >
-                            <Printer className="w-3.5 h-3.5" />
+                            <Sparkles className="w-3 h-3" />
+                            <span>Convert</span>
                           </button>
+                        )}
 
-                          {/* Public Client Proposal Portal Link */}
+                        {/* Quick Status Menu */}
+                        {q.status === "DRAFT" && (
                           <button
-                            onClick={() => {
-                              const token = q.shareToken || q.id;
-                              const url = `${window.location.origin}/p/quote/${token}`;
-                              navigator.clipboard.writeText(url);
-                              toast.success("Client portal link copied to clipboard!");
-                            }}
-                            title="Copy Public Client Proposal Link"
-                            className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/60 transition-colors cursor-pointer"
+                            onClick={() => handleUpdateStatus(q.id, "SENT")}
+                            title="Mark as Sent"
+                            className="p-1.5 rounded-md border border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 transition-colors cursor-pointer"
                           >
-                            <Globe className="w-3.5 h-3.5" />
+                            <Send className="w-3.5 h-3.5" />
                           </button>
+                        )}
 
-                          {/* 1-Click Convert to Project & Invoice button */}
-                          {!q.convertedProjectId && (
-                            <button
-                              onClick={() => setConvertTargetQuotation(q)}
-                              title="1-Click Convert to Project & Invoice"
-                              className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
-                            >
-                              <Sparkles className="w-3 h-3" />
-                              <span>Convert</span>
-                            </button>
-                          )}
-
-                          {/* Quick Status Menu */}
-                          {q.status === "DRAFT" && (
-                            <button
-                              onClick={() => handleUpdateStatus(q.id, "SENT")}
-                              title="Mark as Sent"
-                              className="p-1 rounded text-blue-500 hover:text-blue-600 hover:bg-blue-500/10 transition-colors cursor-pointer"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-
-                          {q.status !== "ACCEPTED" && (
-                            <button
-                              onClick={() => setDeleteTargetId(q.id)}
-                              title="Delete"
-                              className="p-1 rounded text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {q.status !== "ACCEPTED" && (
+                          <button
+                            onClick={() => setDeleteTargetId(q.id)}
+                            title="Delete"
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
       )}

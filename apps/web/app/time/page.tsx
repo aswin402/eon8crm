@@ -17,12 +17,22 @@ import {
   Tag,
   User,
   Download,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { formatHoursMinutes, formatINR, formatDate } from "@/lib/utils";
 import { ManualTimeEntryModal } from "@/components/time";
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface TimeEntry {
   id: string;
@@ -176,11 +186,12 @@ export default function TimeTrackingPage() {
           <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-1">
             <span>Operations</span>
             <span>/</span>
-            <span className="text-foreground font-medium">Time Tracking & Timesheets</span>
+            <span className="text-amber-500 dark:text-amber-400 font-semibold">Time Tracking & Timesheets</span>
           </div>
           <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2.5">
-            <Clock className="w-5 h-5 text-muted-foreground" />
+            <Clock className="w-5 h-5 text-amber-500" />
             <span>Time & Billable Hours Studio</span>
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Labor costing engine snapshotting internal cost and client billing rates for invoice aggregation.
@@ -190,17 +201,17 @@ export default function TimeTrackingPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportTimesheet}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border/80 bg-muted/20 hover:bg-muted/40 text-foreground text-xs font-medium rounded-md transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-medium rounded-md transition-colors cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-muted-foreground" />
+            <Download className="w-3.5 h-3.5 text-amber-500" />
             <span>Export CSV</span>
           </button>
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs font-medium rounded-md transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-semibold rounded-md transition-all cursor-pointer shadow-xs amber-glow"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Log Manual Time</span>
           </button>
         </div>
@@ -253,8 +264,9 @@ export default function TimeTrackingPage() {
             <p className="text-[11px] text-muted-foreground">Gross client labor value</p>
           </div>
 
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
-            <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Unbilled Backlog</span>
+          <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] space-y-1 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+            <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 uppercase tracking-wider font-medium">Unbilled Backlog</span>
             <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
               {formatHoursMinutes(unbilledMinutes)}
             </div>
@@ -267,117 +279,115 @@ export default function TimeTrackingPage() {
       {isLoading ? (
         <TableSkeleton rows={8} columns={8} />
       ) : (
-        <div className="rounded-xl bg-card border border-border/80 shadow-2xs overflow-hidden">
+        <div className="rounded-xl bg-card/60 border border-border/80 shadow-2xs overflow-hidden">
           <div className="px-4 py-3 border-b border-border/80 bg-muted/20 flex items-center justify-between">
-            <span className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider">
-              Timesheet Records ({entries.length})
+            <span className="text-xs font-mono font-medium text-foreground uppercase tracking-wider">
+              Timesheet Records <span className="text-amber-500 dark:text-amber-400">({entries.length})</span>
             </span>
             <button
               onClick={fetchData}
               disabled={isLoading}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-amber-500 transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead className="bg-muted/30 border-b border-border/80 text-muted-foreground font-mono text-[11px] uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4 font-medium">Date</th>
-                  <th className="py-3 px-4 font-medium">Employee</th>
-                  <th className="py-3 px-4 font-medium">Project & Task</th>
-                  <th className="py-3 px-4 font-medium">Work Description</th>
-                  <th className="py-3 px-4 font-medium text-right">Duration</th>
-                  <th className="py-3 px-4 font-medium text-right">Billing Rate</th>
-                  <th className="py-3 px-4 font-medium text-center">Status</th>
-                  <th className="py-3 px-4 font-medium text-right">Approval</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {entries.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                      No time entries recorded yet. Start the stopwatch dock or log time manually.
-                    </td>
-                  </tr>
-                ) : (
-                  entries.map((entry) => {
-                    return (
-                      <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="py-3.5 px-4 font-mono text-muted-foreground">
-                          {formatDate(entry.startTime)}
-                        </td>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-border/80 bg-muted/30">
+                <TableHead className="font-mono text-[11px]">Date</TableHead>
+                <TableHead>Employee</TableHead>
+                <TableHead>Project & Task</TableHead>
+                <TableHead>Work Description</TableHead>
+                <TableHead className="text-right font-mono text-[11px]">Duration</TableHead>
+                <TableHead className="text-right font-mono text-[11px]">Billing Rate</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Approval</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                    No time entries recorded yet. Start the stopwatch dock or log time manually.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                entries.map((entry) => {
+                  return (
+                    <TableRow key={entry.id} className="hover:bg-amber-500/[0.03] transition-colors">
+                      <TableCell className="font-mono text-muted-foreground">
+                        {formatDate(entry.startTime)}
+                      </TableCell>
 
-                        <td className="py-3.5 px-4 font-medium text-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <User className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span>{entry.user.name}</span>
-                          </div>
-                        </td>
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{entry.user.name}</span>
+                        </div>
+                      </TableCell>
 
-                        <td className="py-3.5 px-4">
-                          <p className="font-medium text-foreground">{entry.project.name}</p>
-                          {entry.task && (
-                            <p className="text-[11px] text-muted-foreground">{entry.task.title}</p>
-                          )}
-                        </td>
+                      <TableCell>
+                        <p className="font-medium text-foreground">{entry.project.name}</p>
+                        {entry.task && (
+                          <p className="text-[11px] text-muted-foreground">{entry.task.title}</p>
+                        )}
+                      </TableCell>
 
-                        <td className="py-3.5 px-4 text-foreground max-w-xs truncate">
-                          {entry.description}
-                        </td>
+                      <TableCell className="text-foreground max-w-xs truncate">
+                        {entry.description}
+                      </TableCell>
 
-                        <td className="py-3.5 px-4 text-right font-mono font-medium text-foreground tabular-nums">
-                          {formatHoursMinutes(entry.durationMinutes)}
-                        </td>
+                      <TableCell className="text-right font-mono font-medium text-foreground tabular-nums">
+                        {formatHoursMinutes(entry.durationMinutes)}
+                      </TableCell>
 
-                        <td className="py-3.5 px-4 text-right font-mono text-muted-foreground tabular-nums">
-                          {entry.isBillable ? (
-                            <span className="text-foreground">{formatINR(entry.billingRate)}/hr</span>
-                          ) : (
-                            <span>Non-billable</span>
-                          )}
-                        </td>
+                      <TableCell className="text-right font-mono text-muted-foreground tabular-nums">
+                        {entry.isBillable ? (
+                          <span className="text-foreground font-medium">{formatINR(entry.billingRate)}/hr</span>
+                        ) : (
+                          <span className="text-muted-foreground">Non-billable</span>
+                        )}
+                      </TableCell>
 
-                        <td className="py-3.5 px-4 text-center">
-                          {entry.isBilled ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                              Billed
-                            </span>
-                          ) : entry.isBillable ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                              Unbilled
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-muted/40 text-muted-foreground">
-                              Internal
-                            </span>
-                          )}
-                        </td>
+                      <TableCell className="text-center">
+                        {entry.isBilled ? (
+                          <Badge variant="outline" className="font-mono text-[10px] bg-muted/40 text-muted-foreground border-border/80">
+                            Billed
+                          </Badge>
+                        ) : entry.isBillable ? (
+                          <Badge variant="outline" className="font-mono text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25">
+                            Unbilled
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="font-mono text-[10px] bg-muted/20 text-muted-foreground border-border/60">
+                            Internal
+                          </Badge>
+                        )}
+                      </TableCell>
 
-                        <td className="py-3.5 px-4 text-right">
-                          {entry.isApproved ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Approved
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => handleApproveEntry(entry.id)}
-                              className="text-xs px-2.5 py-1 rounded-md border border-border/80 bg-background hover:bg-muted text-foreground font-medium transition-colors cursor-pointer shadow-2xs"
-                            >
-                              Approve
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                      <TableCell className="text-right">
+                        {entry.isApproved ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Approved
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleApproveEntry(entry.id)}
+                            className="text-xs px-2.5 py-1 rounded-md border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium transition-colors cursor-pointer shadow-2xs"
+                          >
+                            Approve
+                          </button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
 

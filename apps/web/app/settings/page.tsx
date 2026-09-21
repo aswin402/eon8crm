@@ -21,6 +21,7 @@ import {
 import { api } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
 import { DEFAULT_ORGANIZATION_CONFIG, OrganizationConfig } from "@/config/organization";
+import { Badge } from "@/components/ui/badge";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<OrganizationConfig>(DEFAULT_ORGANIZATION_CONFIG);
@@ -87,7 +88,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="p-12 flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted-foreground text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-foreground" />
+        <RefreshCw className="w-5 h-5 animate-spin text-amber-500" />
         <span>Loading Organization Profile...</span>
       </div>
     );
@@ -101,10 +102,11 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
             <span>Management</span>
             <span>/</span>
-            <span className="text-foreground">Settings & Identity</span>
+            <span className="text-amber-500 dark:text-amber-400 font-semibold">Settings & Identity</span>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground mt-1">
-            Organization Profile & Compliance
+          <h1 className="text-xl font-semibold tracking-tight text-foreground mt-1 flex items-center gap-2">
+            <span>Organization Profile & Compliance</span>
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Configure legal entity details, statutory GSTIN credentials, and remittance instructions.
@@ -112,30 +114,28 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1 rounded-md border border-border/80 bg-muted/40 text-muted-foreground">
-            {canEdit ? (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-foreground font-medium">Write Access ({currentUser?.role})</span>
-              </>
-            ) : (
-              <>
-                <Lock className="w-3 h-3 text-amber-500" />
-                <span>Read Only</span>
-              </>
-            )}
-          </span>
+          {canEdit ? (
+            <Badge variant="outline" className="gap-1.5 font-mono text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Write Access ({currentUser?.role})
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="gap-1.5 font-mono text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+              <Lock className="w-3 h-3 text-amber-500" />
+              Read Only
+            </Badge>
+          )}
 
           {canEdit && (
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shadow-xs amber-glow"
             >
               {saving ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Save className="w-3.5 h-3.5" />
+                <Save className="w-3.5 h-3.5 stroke-[2.5]" />
               )}
               <span>{saving ? "Saving..." : "Save Settings"}</span>
             </button>
@@ -149,7 +149,7 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("general")}
           className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
             activeTab === "general"
-              ? "bg-card text-foreground shadow-xs border border-border/60"
+              ? "bg-amber-500 text-slate-950 font-semibold shadow-xs"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -161,7 +161,7 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("tax")}
           className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
             activeTab === "tax"
-              ? "bg-card text-foreground shadow-xs border border-border/60"
+              ? "bg-amber-500 text-slate-950 font-semibold shadow-xs"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -173,7 +173,7 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("banking")}
           className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
             activeTab === "banking"
-              ? "bg-card text-foreground shadow-xs border border-border/60"
+              ? "bg-amber-500 text-slate-950 font-semibold shadow-xs"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -467,12 +467,12 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shadow-xs amber-glow"
               >
                 {saving ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
                 )}
                 <span>{saving ? "Updating..." : "Save Changes"}</span>
               </button>

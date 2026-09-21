@@ -22,6 +22,15 @@ import { LogExpenseModal } from "@/components/expenses";
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { logger } from "@/lib/logger";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface ExpenseItem {
   id: string;
@@ -209,7 +218,7 @@ export default function ExpensesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportExpenses}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border/80 bg-muted/20 hover:bg-muted/40 text-foreground text-xs font-medium rounded-md transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border/80 bg-muted/20 hover:bg-muted/40 text-foreground text-xs font-medium rounded-lg transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Export CSV</span>
@@ -217,10 +226,10 @@ export default function ExpensesPage() {
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-foreground text-background hover:bg-foreground/90 text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-semibold text-xs transition-all shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 cursor-pointer active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5" />
-            Log Expense
+            <span>Log Expense</span>
           </button>
         </div>
       </div>
@@ -228,7 +237,7 @@ export default function ExpensesPage() {
       {/* Feedback Message */}
       {feedbackMsg && (
         <div
-          className={`p-3 rounded-md border text-xs flex items-center justify-between ${
+          className={`p-3 rounded-lg border text-xs flex items-center justify-between ${
             feedbackMsg.type === "success"
               ? "bg-muted/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
               : "bg-muted/40 border-rose-500/30 text-rose-600 dark:text-rose-400"
@@ -238,7 +247,7 @@ export default function ExpensesPage() {
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span className="font-medium">{feedbackMsg.text}</span>
           </div>
-          <button onClick={() => setFeedbackMsg(null)} className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => setFeedbackMsg(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -249,10 +258,10 @@ export default function ExpensesPage() {
         <MetricCardSkeleton count={4} />
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-4 rounded-xl border border-amber-500/20 bg-card/70 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-md hover:shadow-amber-500/5 backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Total Overheads</span>
-              <DollarSign className="w-4 h-4 text-muted-foreground/70" />
+              <DollarSign className="w-4 h-4 text-amber-500" />
             </div>
             <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
               {formatINR(summary?.totalAmount || 0)}
@@ -260,7 +269,7 @@ export default function ExpensesPage() {
             <p className="text-[11px] text-muted-foreground mt-1">{summary?.count || 0} recorded items</p>
           </div>
 
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 hover:border-border transition-all shadow-2xs backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Core Salaries</span>
               <Building2 className="w-4 h-4 text-muted-foreground/70" />
@@ -271,10 +280,10 @@ export default function ExpensesPage() {
             <p className="text-[11px] text-muted-foreground mt-1">Engineering & management</p>
           </div>
 
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-4 rounded-xl border border-amber-500/15 bg-card/60 hover:border-amber-500/30 transition-all shadow-2xs backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Software & Cloud</span>
-              <CreditCard className="w-4 h-4 text-muted-foreground/70" />
+              <CreditCard className="w-4 h-4 text-amber-500/80" />
             </div>
             <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
               {formatINR(summary?.byCategory.find((c) => c.category === "Software")?.total || 0)}
@@ -282,7 +291,7 @@ export default function ExpensesPage() {
             <p className="text-[11px] text-muted-foreground mt-1">SaaS licenses & AWS</p>
           </div>
 
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-4 rounded-xl border border-border/80 bg-card/60 hover:border-border transition-all shadow-2xs backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Infrastructure & Rent</span>
               <PieChart className="w-4 h-4 text-muted-foreground/70" />
@@ -296,7 +305,7 @@ export default function ExpensesPage() {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 bg-card/50 border border-border/80 rounded-xl">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 bg-card border border-border/80 rounded-xl shadow-2xs">
         <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto p-1">
           {["ALL", "Software", "Salaries", "Rent", "Marketing", "Travel"].map((cat) => {
             const isSelected = activeCategory === cat;
@@ -304,9 +313,9 @@ export default function ExpensesPage() {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                   isSelected
-                    ? "bg-foreground text-background shadow-2xs"
+                    ? "bg-amber-500 text-slate-950 font-semibold shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 }`}
               >
@@ -323,7 +332,7 @@ export default function ExpensesPage() {
             placeholder="Search payee, description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/20 border border-border/80 rounded-md text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:border-foreground/40 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/30 border border-border/80 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
           />
         </form>
       </div>
@@ -332,59 +341,61 @@ export default function ExpensesPage() {
       {isLoading ? (
         <TableSkeleton rows={8} columns={6} />
       ) : (
-        <div className="bg-card/60 border border-border/80 rounded-xl shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-medium">
-                  <th className="py-2.5 px-4 font-mono text-[11px]">Date</th>
-                  <th className="py-2.5 px-4">Category</th>
-                  <th className="py-2.5 px-4">Description</th>
-                  <th className="py-2.5 px-4">Vendor / Payee</th>
-                  <th className="py-2.5 px-4 text-right font-mono text-[11px]">Amount (₹)</th>
-                  <th className="py-2.5 px-4 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {expenses.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                      <Receipt className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
-                      No expenses recorded under this filter.
-                    </td>
-                  </tr>
-                ) : (
-                  expenses.map((exp) => (
-                    <tr key={exp.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-2.5 px-4 font-mono text-muted-foreground tabular-nums">
-                        {formatDate(exp.expenseDate)}
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted/40 border border-border/80 text-foreground">
-                          <span className={`w-1.5 h-1.5 rounded-full ${getCategoryDot(exp.category)}`} />
-                          {exp.category}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4 font-medium text-foreground">{exp.description}</td>
-                      <td className="py-2.5 px-4 text-muted-foreground">{exp.vendor || "—"}</td>
-                      <td className="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
-                        {formatINR(exp.amount)}
-                      </td>
-                      <td className="py-2.5 px-4 text-center">
-                        <button
-                          onClick={() => setDeleteTargetId(exp.id)}
-                          className="p-1 rounded-md text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                          title="Delete expense"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="py-3 px-4 font-mono text-[11px]">Date</TableHead>
+                <TableHead className="py-3 px-4">Category</TableHead>
+                <TableHead className="py-3 px-4">Description</TableHead>
+                <TableHead className="py-3 px-4">Vendor / Payee</TableHead>
+                <TableHead className="py-3 px-4 text-right font-mono text-[11px]">Amount (₹)</TableHead>
+                <TableHead className="py-3 px-4 text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {expenses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <Receipt className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
+                    No expenses recorded under this filter.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                expenses.map((exp) => (
+                  <TableRow key={exp.id} className="group">
+                    <TableCell className="py-3 px-4 font-mono text-muted-foreground tabular-nums text-[11px]">
+                      {formatDate(exp.expenseDate)}
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
+                      <Badge variant="outline" className="gap-1.5 font-mono text-[11px]">
+                        <span className={`w-1.5 h-1.5 rounded-full ${getCategoryDot(exp.category)}`} />
+                        {exp.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-3 px-4 font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                      {exp.description}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-muted-foreground">
+                      {exp.vendor || "—"}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
+                      {formatINR(exp.amount)}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => setDeleteTargetId(exp.id)}
+                        className="p-1 rounded-md text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Delete expense"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       )}
 

@@ -250,12 +250,12 @@ export function Header() {
           {/* Minimal Search Trigger */}
           <button
             onClick={() => setIsCommandOpen(true)}
-            className="hidden md:flex items-center gap-2 px-2.5 py-1 bg-muted/20 hover:bg-muted/40 text-muted-foreground hover:text-foreground border border-border/80 rounded-md text-xs transition-colors group cursor-pointer"
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/30 hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-border/80 hover:border-amber-500/40 rounded-lg text-xs transition-all group cursor-pointer shadow-2xs"
             title="Search records and actions (⌘K)"
           >
-            <Search className="w-3.5 h-3.5 text-muted-foreground/80 group-hover:text-foreground transition-colors" />
+            <Search className="w-3.5 h-3.5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
             <span className="text-xs text-muted-foreground">Search or jump to...</span>
-            <kbd className="ml-3 px-1.5 py-0.2 text-[10px] font-mono bg-background/80 border border-border/80 rounded text-muted-foreground shadow-2xs">
+            <kbd className="ml-3 px-1.5 py-0.5 text-[10px] font-mono bg-background/80 border border-border/80 rounded text-muted-foreground shadow-2xs group-hover:border-amber-500/30">
               ⌘K
             </kbd>
           </button>
@@ -270,16 +270,16 @@ export function Header() {
           <div className="relative" ref={quickActionRef}>
             <button
               onClick={() => setIsQuickActionOpen((prev) => !prev)}
-              className="flex items-center gap-1 px-2.5 py-1 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium rounded-md transition-colors shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-semibold rounded-lg transition-all shadow-xs hover:shadow-md hover:shadow-amber-500/20 active:translate-y-px cursor-pointer"
               title="Quick Create"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New</span>
+              <span className="hidden sm:inline">New Action</span>
             </button>
 
             {isQuickActionOpen && (
-              <div className="absolute right-0 mt-1.5 w-44 bg-card border border-border/80 rounded-lg shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                <div className="px-3 py-1.5 text-[10px] font-mono text-muted-foreground uppercase tracking-wider border-b border-border/60">
+              <div className="absolute right-0 mt-2 w-48 bg-card border border-border/80 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
+                <div className="px-3 py-2 text-[10px] font-mono text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider border-b border-border/60">
                   Quick Create
                 </div>
                 <Link
@@ -468,8 +468,14 @@ export function Header() {
 
       {/* Global ⌘K Command Palette Modal */}
       {isCommandOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border/80 rounded-xl shadow-2xl max-w-xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/60 backdrop-blur-xs p-4"
+          onClick={() => setIsCommandOpen(false)}
+        >
+          <div
+            className="bg-card border border-border/80 rounded-xl shadow-2xl max-w-xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Search Input */}
             <div className="px-4 py-3 border-b border-border/80 flex items-center gap-2.5">
               <Search className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -484,9 +490,20 @@ export function Header() {
                 }}
                 className="w-full bg-transparent border-none text-foreground placeholder:text-muted-foreground text-xs focus:outline-hidden"
               />
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/40 border border-border/80 rounded text-muted-foreground">
-                ESC
-              </kbd>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-muted/40 border border-border/80 rounded text-muted-foreground">
+                  ESC
+                </kbd>
+                <button
+                  type="button"
+                  onClick={() => setIsCommandOpen(false)}
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+                  title="Close (Esc)"
+                  aria-label="Close command palette"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Results List */}

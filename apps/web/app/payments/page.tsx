@@ -13,8 +13,18 @@ import {
   RefreshCw,
   Search,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface PaymentItem {
   id: string;
@@ -78,10 +88,11 @@ export default function PaymentsPage() {
           <div className="flex items-center gap-2 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
             <span>Finance</span>
             <span>/</span>
-            <span className="text-foreground">Payment Receipts</span>
+            <span className="text-amber-500 dark:text-amber-400 font-semibold">Payment Receipts</span>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground mt-1">
-            Cleared Payments & Bank Collections
+          <h1 className="text-xl font-semibold tracking-tight text-foreground mt-1 flex items-center gap-2">
+            <span>Cleared Payments & Bank Collections</span>
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Audit trail of client payment settlements, bank transaction references (UTR), and reconciled receipts.
@@ -91,7 +102,7 @@ export default function PaymentsPage() {
         <button
           onClick={fetchPayments}
           disabled={isLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border/80 bg-muted/20 text-xs font-medium text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50 self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50 self-start sm:self-auto cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
           Refresh
@@ -100,10 +111,11 @@ export default function PaymentsPage() {
 
       {/* KPI Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] shadow-2xs backdrop-blur-xs relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex items-center justify-between text-xs text-amber-600 dark:text-amber-400 font-medium">
             <span>Total Realized Cash</span>
-            <ShieldCheck className="w-4 h-4 text-muted-foreground/70" />
+            <ShieldCheck className="w-4 h-4 text-amber-500" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
             {formatINR(totalCollected)}
@@ -137,7 +149,7 @@ export default function PaymentsPage() {
       {/* Search Bar */}
       <div className="flex items-center justify-between p-2 bg-card/50 border border-border/80 rounded-xl">
         <span className="text-xs font-medium text-foreground px-2">
-          Settlement Ledger <span className="text-muted-foreground font-mono">({filteredPayments.length})</span>
+          Settlement Ledger <span className="text-amber-500 dark:text-amber-400 font-mono">({filteredPayments.length})</span>
         </span>
 
         <div className="relative w-full sm:w-64">
@@ -147,90 +159,88 @@ export default function PaymentsPage() {
             placeholder="Search receipt #, invoice, client, UTR..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/20 border border-border/80 rounded-md text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:border-foreground/40 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/20 border border-border/80 rounded-md text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
           />
         </div>
       </div>
 
-      {/* Payments Table */}
+      {/* Payments Table using Shadcn */}
       <div className="bg-card/60 border border-border/80 rounded-xl shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-medium">
-                <th className="py-2.5 px-4 font-mono text-[11px]">Receipt #</th>
-                <th className="py-2.5 px-4 font-mono text-[11px]">Payment Date</th>
-                <th className="py-2.5 px-4">Client</th>
-                <th className="py-2.5 px-4">Invoice Linked</th>
-                <th className="py-2.5 px-4">Payment Method</th>
-                <th className="py-2.5 px-4 font-mono text-[11px]">Reference / UTR</th>
-                <th className="py-2.5 px-4 text-right font-mono text-[11px]">Settled Amount (₹)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                    <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-foreground" />
-                    Loading payment records...
-                  </td>
-                </tr>
-              ) : filteredPayments.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                    No payment settlements found.
-                  </td>
-                </tr>
-              ) : (
-                filteredPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-2.5 px-4 font-mono font-medium text-foreground">
-                      {p.paymentNumber}
-                    </td>
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-border/80 bg-muted/30">
+              <TableHead className="font-mono text-[11px]">Receipt #</TableHead>
+              <TableHead className="font-mono text-[11px]">Payment Date</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Invoice Linked</TableHead>
+              <TableHead>Payment Method</TableHead>
+              <TableHead className="font-mono text-[11px]">Reference / UTR</TableHead>
+              <TableHead className="text-right font-mono text-[11px]">Settled Amount (₹)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-amber-500" />
+                  Loading payment records...
+                </TableCell>
+              </TableRow>
+            ) : filteredPayments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                  No payment settlements found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredPayments.map((p) => (
+                <TableRow key={p.id} className="hover:bg-amber-500/[0.03] transition-colors">
+                  <TableCell className="font-mono font-medium text-foreground">
+                    <span className="text-amber-600 dark:text-amber-400">{p.paymentNumber}</span>
+                  </TableCell>
 
-                    <td className="py-2.5 px-4 font-mono text-muted-foreground tabular-nums">
-                      {formatDate(p.paymentDate)}
-                    </td>
+                  <TableCell className="font-mono text-muted-foreground tabular-nums">
+                    {formatDate(p.paymentDate)}
+                  </TableCell>
 
-                    <td className="py-2.5 px-4">
-                      <Link
-                        href={`/clients/${p.invoice.client.id}`}
-                        className="font-medium text-foreground hover:underline flex items-center gap-1.5"
-                      >
-                        <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span>{p.invoice.client.companyName}</span>
-                      </Link>
-                    </td>
+                  <TableCell>
+                    <Link
+                      href={`/clients/${p.invoice.client.id}`}
+                      className="font-medium text-foreground hover:text-amber-500 hover:underline flex items-center gap-1.5 transition-colors"
+                    >
+                      <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>{p.invoice.client.companyName}</span>
+                    </Link>
+                  </TableCell>
 
-                    <td className="py-2.5 px-4">
-                      <Link
-                        href="/invoices"
-                        className="font-mono text-xs text-foreground hover:underline flex items-center gap-1"
-                      >
-                        <FileText className="w-3 h-3 text-muted-foreground" />
-                        <span>{p.invoice.invoiceNumber}</span>
-                      </Link>
-                    </td>
+                  <TableCell>
+                    <Link
+                      href="/invoices"
+                      className="font-mono text-xs text-foreground hover:text-amber-500 hover:underline flex items-center gap-1 transition-colors"
+                    >
+                      <FileText className="w-3 h-3 text-muted-foreground" />
+                      <span>{p.invoice.invoiceNumber}</span>
+                    </Link>
+                  </TableCell>
 
-                    <td className="py-2.5 px-4">
-                      <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted/40 text-foreground border border-border/80">
-                        {p.paymentMethod}
-                      </span>
-                    </td>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono text-[10px] bg-amber-500/5 border-amber-500/20 text-amber-600 dark:text-amber-400">
+                      {p.paymentMethod}
+                    </Badge>
+                  </TableCell>
 
-                    <td className="py-2.5 px-4 font-mono text-muted-foreground">
-                      {p.referenceId || "—"}
-                    </td>
+                  <TableCell className="font-mono text-muted-foreground">
+                    {p.referenceId || "—"}
+                  </TableCell>
 
-                    <td className="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-foreground">
-                      {formatINR(p.amount)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  <TableCell className="text-right font-mono font-semibold tabular-nums text-foreground">
+                    {formatINR(p.amount)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

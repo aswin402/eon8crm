@@ -20,6 +20,15 @@ import {
   PieChart,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface CashflowMonth {
   month: string;
@@ -366,60 +375,60 @@ export default function AnalyticsPage() {
 
           {/* Client-wise Aging Breakdown Table */}
           <div className="pt-2 border-t border-border/60">
-            <div className="overflow-x-auto rounded-lg border border-border/80">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="bg-muted/30 border-b border-border/80 text-muted-foreground font-mono text-[11px] uppercase tracking-wider">
-                  <tr>
-                    <th className="py-2.5 px-3 font-medium">Client Organization</th>
-                    <th className="py-2.5 px-3 font-medium text-right">Current</th>
-                    <th className="py-2.5 px-3 font-medium text-right">1-30 Days</th>
-                    <th className="py-2.5 px-3 font-medium text-right">31-60 Days</th>
-                    <th className="py-2.5 px-3 font-medium text-right">60+ Days</th>
-                    <th className="py-2.5 px-3 font-medium text-right">Total Owed</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60 font-mono">
+            <div className="rounded-xl border border-border/80 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="py-3 px-4 font-medium">Client Organization</TableHead>
+                    <TableHead className="py-3 px-4 font-medium font-mono text-[11px] text-right">Current</TableHead>
+                    <TableHead className="py-3 px-4 font-medium font-mono text-[11px] text-right">1-30 Days</TableHead>
+                    <TableHead className="py-3 px-4 font-medium font-mono text-[11px] text-right">31-60 Days</TableHead>
+                    <TableHead className="py-3 px-4 font-medium font-mono text-[11px] text-right">60+ Days</TableHead>
+                    <TableHead className="py-3 px-4 font-medium font-mono text-[11px] text-right">Total Owed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {agingData?.clientBreakdown.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-6 text-center text-muted-foreground font-sans">
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground font-sans text-xs">
                         No outstanding receivables. All invoices settled.
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : (
                     agingData?.clientBreakdown.map((row) => (
-                      <tr key={row.client.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="py-2.5 px-3 font-sans">
+                      <TableRow key={row.client.id} className="group">
+                        <TableCell className="py-3 px-4 font-sans">
                           <Link
                             href={`/clients/${row.client.id}`}
-                            className="font-medium text-foreground hover:text-foreground/80 flex items-center gap-1 transition-colors"
+                            className="font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1 transition-colors"
                           >
                             <span>{row.client.companyName}</span>
-                            <ArrowUpRight className="w-3 h-3 text-muted-foreground" />
+                            <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
                           </Link>
                           <span className="text-[10px] text-muted-foreground font-mono">
                             {row.client.clientNumber}
                           </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-muted-foreground tabular-nums">
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-right text-muted-foreground font-mono tabular-nums">
                           {formatINR(row.current)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-amber-600 dark:text-amber-400 tabular-nums">
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-right text-amber-600 dark:text-amber-400 font-mono tabular-nums">
                           {formatINR(row.days1to30)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-orange-600 dark:text-orange-400 tabular-nums">
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-right text-orange-600 dark:text-orange-400 font-mono tabular-nums">
                           {formatINR(row.days31to60)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-rose-600 dark:text-rose-400 font-medium tabular-nums">
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-right text-rose-600 dark:text-rose-400 font-medium font-mono tabular-nums">
                           {formatINR(row.days60plus)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-semibold text-foreground tabular-nums">
+                        </TableCell>
+                        <TableCell className="py-3 px-4 text-right font-semibold text-foreground font-mono tabular-nums">
                           {formatINR(row.totalOutstanding)}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </div>

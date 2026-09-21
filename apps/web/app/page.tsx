@@ -22,6 +22,16 @@ import api from "@/lib/api";
 import { formatCompactINR } from "@/lib/utils";
 import { MetricCardSkeleton, TableSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -62,19 +72,17 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
-          <Link
-            href="/leads"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-background border border-border hover:bg-muted text-foreground rounded-md text-xs font-medium transition-colors shadow-2xs"
-          >
-            <Plus className="w-3.5 h-3.5 text-muted-foreground" />
-            <span>New Lead</span>
+          <Link href="/leads">
+            <Button variant="outline" size="sm" className="gap-1.5 border-border/80 hover:border-amber-500/40">
+              <Plus className="w-3.5 h-3.5 text-amber-500" />
+              <span>New Lead</span>
+            </Button>
           </Link>
-          <Link
-            href="/invoices"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-foreground hover:bg-foreground/90 text-background rounded-md text-xs font-medium transition-colors shadow-xs"
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Create Invoice</span>
+          <Link href="/invoices">
+            <Button variant="amber" size="sm" className="gap-1.5">
+              <Receipt className="w-3.5 h-3.5" />
+              <span>Create Invoice</span>
+            </Button>
           </Link>
         </div>
       </div>
@@ -85,39 +93,46 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Active Accounts */}
-          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-sm space-y-2 group">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="font-medium">Active Clients</span>
-              <Users className="w-3.5 h-3.5" />
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-transform">
+                <Users className="w-3.5 h-3.5" />
+              </div>
             </div>
             <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
               {kpis?.activeClients ?? "—"}
             </div>
             <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium">100% active</span>
-              <span>• Single source of truth</span>
+              <Badge variant="success" className="text-[10px] py-0 px-1.5">100% active</Badge>
+              <span>Single source of truth</span>
             </div>
           </div>
 
           {/* Active Projects */}
-          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-sm space-y-2 group">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="font-medium">Open Projects</span>
-              <Briefcase className="w-3.5 h-3.5" />
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-transform">
+                <Briefcase className="w-3.5 h-3.5" />
+              </div>
             </div>
             <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
               {kpis?.openProjects ?? "—"}
             </div>
             <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
-              <span className="text-foreground font-medium">In delivery pipeline</span>
+              <Badge variant="amber" className="text-[10px] py-0 px-1.5">Active</Badge>
+              <span>In delivery pipeline</span>
             </div>
           </div>
 
           {/* Cleared Cash Collections */}
-          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-sm space-y-2 group">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="font-medium">Cash Collected</span>
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 group-hover:scale-105 transition-transform">
+                <TrendingUp className="w-3.5 h-3.5" />
+              </div>
             </div>
             <div className="text-2xl font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
               {kpis ? formatCompactINR(kpis.totalCollected) : "—"}
@@ -128,21 +143,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Outstanding Receivables */}
-          <div className="p-4 rounded-lg bg-card border border-border shadow-2xs space-y-2">
+          <div className="p-4 rounded-xl bg-card border border-border/80 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-sm space-y-2 group">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="font-medium">Receivables Outstanding</span>
-              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-500 border border-amber-500/30 group-hover:scale-105 transition-transform">
+                <Clock className="w-3.5 h-3.5" />
+              </div>
             </div>
             <div className="text-2xl font-bold font-mono tracking-tight text-foreground">
               {kpis ? formatCompactINR(kpis.totalOutstanding) : "—"}
             </div>
             <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
               {kpis?.overdueAmount > 0 ? (
-                <span className="text-rose-600 dark:text-rose-400 font-medium">
+                <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
                   {formatCompactINR(kpis.overdueAmount)} overdue
-                </span>
+                </Badge>
               ) : (
-                <span className="text-emerald-600">0 overdue</span>
+                <Badge variant="success" className="text-[10px] py-0 px-1.5">0 overdue</Badge>
               )}
             </div>
           </div>
@@ -152,21 +169,22 @@ export default function DashboardPage() {
       {/* Middle Section: Sales Funnel & Profitability */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Pipeline Funnel */}
-        <div className="p-5 rounded-lg bg-card border border-border shadow-2xs space-y-4">
+        <div className="p-5 rounded-xl bg-card border border-border/80 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
               Pipeline Stages
             </h3>
             <Link
               href="/leads"
-              className="text-[11px] text-muted-foreground hover:text-foreground font-mono flex items-center gap-1"
+              className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-mono flex items-center gap-1"
             >
               <span>Kanban</span>
               <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {loading ? (
               <div className="space-y-3 py-2">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -180,29 +198,28 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : leadFunnel.length === 0 ? (
-              <div className="py-8 text-center text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground py-6 text-center">
                 No active leads in pipeline.
-              </div>
+              </p>
             ) : (
               leadFunnel.map((stage: any) => {
-                const totalLeads = kpis?.totalLeads || 1;
-                const pct = Math.round((stage.count / totalLeads) * 100);
-
+                const total = kpis?.totalLeads || 1;
+                const pct = Math.round((stage.count / total) * 100);
                 return (
-                  <div key={stage.status} className="space-y-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-foreground" />
-                        {stage.status}
-                      </span>
-                      <div className="font-mono text-[11px] text-muted-foreground">
-                        <span className="text-foreground font-semibold">{stage.count}</span> ({formatCompactINR(stage.value)})
+                  <div key={stage.stage} className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium text-foreground">{stage.stage}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground font-mono">{stage.count} leads</span>
+                        <span className="text-foreground font-mono font-semibold">
+                          {formatCompactINR(stage.value)}
+                        </span>
                       </div>
                     </div>
-                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-muted/60 rounded-full overflow-hidden">
                       <div
                         style={{ width: `${Math.max(5, pct)}%` }}
-                        className="h-full bg-foreground rounded-full transition-all"
+                        className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all"
                       />
                     </div>
                   </div>
@@ -211,17 +228,20 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+          <div className="pt-3 border-t border-border/80 flex items-center justify-between text-xs text-muted-foreground">
             <span>Total Funnel Leads:</span>
-            <span className="font-mono font-bold text-foreground">{kpis?.totalLeads ?? 0}</span>
+            <span className="font-mono font-bold text-foreground bg-muted/50 px-2 py-0.5 rounded border border-border/60">
+              {kpis?.totalLeads ?? 0}
+            </span>
           </div>
         </div>
 
         {/* Project Margin Rankings Table */}
-        <div className="lg:col-span-2 p-5 rounded-lg bg-card border border-border shadow-2xs space-y-4">
+        <div className="lg:col-span-2 p-5 rounded-xl bg-card border border-border/80 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Active Project Gross Margins
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -230,7 +250,7 @@ export default function DashboardPage() {
             </div>
             <Link
               href="/projects"
-              className="text-[11px] text-muted-foreground hover:text-foreground font-mono flex items-center gap-1"
+              className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-mono flex items-center gap-1"
             >
               <span>View All</span>
               <ChevronRight className="w-3 h-3" />
@@ -240,67 +260,51 @@ export default function DashboardPage() {
           {loading ? (
             <TableSkeleton rows={4} cols={4} />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground font-medium">
-                    <th className="pb-2 font-normal">Project & Client</th>
-                    <th className="pb-2 font-normal text-right">Invoiced</th>
-                    <th className="pb-2 font-normal text-right">Labor Cost</th>
-                    <th className="pb-2 font-normal text-right">Gross Margin</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {projectProfits.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                        No active projects with logged billable time.
-                      </td>
-                    </tr>
-                  ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40%]">Project & Client</TableHead>
+                  <TableHead className="text-right">Invoiced</TableHead>
+                  <TableHead className="text-right">Labor Cost</TableHead>
+                  <TableHead className="text-right">Gross Margin</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projectProfits.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      No active projects with logged billable time.
+                    </TableCell>
+                  </TableRow>
+                ) : (
                   projectProfits.map((p: any) => (
-                    <tr key={p.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-2.5">
-                        <p className="font-medium text-foreground">{p.name}</p>
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <p className="font-semibold text-foreground">{p.name}</p>
                         <p className="text-[11px] text-muted-foreground">{p.client}</p>
-                      </td>
-                      <td className="py-2.5 text-right font-mono text-foreground">
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-medium text-foreground">
                         {formatCompactINR(p.billed)}
-                      </td>
-                      <td className="py-2.5 text-right font-mono text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
                         {formatCompactINR(p.laborCost)}
-                      </td>
-                      <td className="py-2.5 text-right font-mono">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${
-                            p.margin >= 40
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                              : p.margin >= 20
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
-                          }`}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge
+                          variant={p.margin >= 40 ? "success" : p.margin >= 20 ? "amber" : "destructive"}
+                          className="font-mono text-[10px]"
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              p.margin >= 40
-                                ? "bg-emerald-500"
-                                : p.margin >= 20
-                                ? "bg-amber-500"
-                                : "bg-rose-500"
-                            }`}
-                          />
                           {p.margin}%
-                        </span>
-                      </td>
-                    </tr>
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
-    </div>
 
       {/* Bottom Nav Cards: Quick Jump Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">

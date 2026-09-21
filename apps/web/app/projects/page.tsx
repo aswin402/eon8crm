@@ -19,6 +19,7 @@ import { formatCompactINR as formatINR } from "@/lib/utils";
 import { MetricCardSkeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { logger } from "@/lib/logger";
+import { Badge } from "@/components/ui/badge";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -83,24 +84,24 @@ export default function ProjectsPage() {
           <div className="flex items-center bg-muted/40 border border-border/80 p-0.5 rounded-lg text-xs">
             <button
               onClick={() => setStatusFilter("")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                statusFilter === "" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                statusFilter === "" ? "bg-amber-500 text-slate-950 font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               All
             </button>
             <button
               onClick={() => setStatusFilter("ACTIVE")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                statusFilter === "ACTIVE" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                statusFilter === "ACTIVE" ? "bg-amber-500 text-slate-950 font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Active
             </button>
             <button
               onClick={() => setStatusFilter("PLANNING")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                statusFilter === "PLANNING" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                statusFilter === "PLANNING" ? "bg-amber-500 text-slate-950 font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Planning
@@ -122,7 +123,7 @@ export default function ProjectsPage() {
             <p className="text-[11px] text-muted-foreground">{projects.length} total portfolios</p>
           </div>
 
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+          <div className="p-4 rounded-xl border border-amber-500/20 bg-card/70 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-md hover:shadow-amber-500/5 space-y-1 backdrop-blur-xs">
             <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Total Contract Budget</span>
             <div className="text-xl font-semibold font-mono tabular-nums text-foreground">
               {formatINR(totalBudget)}
@@ -181,22 +182,22 @@ export default function ProjectsPage() {
           return (
             <div
               key={p.id}
-              className="p-5 rounded-xl bg-card border border-border/80 shadow-2xs hover:border-foreground/30 transition-all flex flex-col justify-between space-y-4 group"
+              className="p-5 rounded-xl bg-card border border-border/80 shadow-2xs hover:border-amber-500/40 hover:shadow-lg hover:shadow-amber-500/5 transition-all flex flex-col justify-between space-y-4 group"
             >
               {/* Header: Title & Status */}
               <div className="space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-sm text-foreground group-hover:text-foreground/80 transition-colors">
+                  <h3 className="font-semibold text-sm text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                     {p.name}
                   </h3>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-mono font-medium text-foreground shrink-0">
+                  <Badge variant={p.status === "ACTIVE" ? "success" : "info"} className="gap-1.5 font-mono text-[10px] shrink-0">
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
                         p.status === "ACTIVE" ? "bg-emerald-500" : "bg-sky-500"
                       }`}
                     />
                     {p.status}
-                  </span>
+                  </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Client: <span className="font-medium text-foreground">{p.client?.companyName}</span>
@@ -217,9 +218,9 @@ export default function ProjectsPage() {
                     {stats.completedTasks} / {stats.totalTasks} ({stats.progressPercentage}%)
                   </span>
                 </div>
-                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-foreground rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500"
                     style={{ width: `${stats.progressPercentage}%` }}
                   />
                 </div>
@@ -246,7 +247,16 @@ export default function ProjectsPage() {
 
                 <div className="flex items-center justify-between pt-1 border-t border-border/60">
                   <span className="text-foreground text-[11px] font-sans font-medium">Gross Margin</span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-medium text-foreground">
+                  <Badge
+                    variant={
+                      isHighMargin
+                        ? "success"
+                        : isDangerMargin
+                        ? "destructive"
+                        : "amber"
+                    }
+                    className="gap-1.5 font-mono text-[10px]"
+                  >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
                         isHighMargin
@@ -257,13 +267,13 @@ export default function ProjectsPage() {
                       }`}
                     />
                     {stats.marginPercentage}% ({formatINR(stats.grossProfit)})
-                  </span>
+                  </Badge>
                 </div>
               </div>
 
               <Link
                 href={`/projects/${p.id}`}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-border/80 bg-muted/20 hover:bg-muted/50 text-xs font-medium text-foreground transition-colors"
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-border/80 bg-muted/20 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-600 dark:hover:text-amber-400 text-xs font-medium text-foreground transition-all shadow-2xs"
               >
                 <span>Open Project 360°</span>
                 <ArrowRight className="w-3.5 h-3.5" />

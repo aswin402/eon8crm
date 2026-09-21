@@ -26,6 +26,15 @@ import { logger } from "@/lib/logger";
 import { formatINR, formatCompactINR, formatDate } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
 import { InvoicePreviewModal } from "@/components/invoices/InvoicePreviewModal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function Client360Page() {
   const params = useParams();
@@ -159,9 +168,9 @@ export default function Client360Page() {
       <div className="border-b border-border/80 flex items-center gap-1">
         <button
           onClick={() => setActiveTab("projects")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-medium border-b-2 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all cursor-pointer ${
             activeTab === "projects"
-              ? "border-foreground text-foreground"
+              ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -171,9 +180,9 @@ export default function Client360Page() {
 
         <button
           onClick={() => setActiveTab("invoices")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-medium border-b-2 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all cursor-pointer ${
             activeTab === "invoices"
-              ? "border-foreground text-foreground"
+              ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -183,9 +192,9 @@ export default function Client360Page() {
 
         <button
           onClick={() => setActiveTab("contacts")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-medium border-b-2 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all cursor-pointer ${
             activeTab === "contacts"
-              ? "border-foreground text-foreground"
+              ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -195,9 +204,9 @@ export default function Client360Page() {
 
         <button
           onClick={() => setActiveTab("chatter")}
-          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-medium border-b-2 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all cursor-pointer ${
             activeTab === "chatter"
-              ? "border-foreground text-foreground"
+              ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -264,75 +273,75 @@ export default function Client360Page() {
 
         {activeTab === "invoices" && (
           <div className="rounded-xl bg-card border border-border/80 shadow-2xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/30 border-b border-border/80 text-muted-foreground font-mono text-[11px] uppercase tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4 font-medium">Invoice #</th>
-                    <th className="py-3 px-4 font-medium">Issue Date</th>
-                    <th className="py-3 px-4 font-medium">Due Date</th>
-                    <th className="py-3 px-4 font-medium">Subtotal</th>
-                    <th className="py-3 px-4 font-medium">GST</th>
-                    <th className="py-3 px-4 font-medium">Total Amount</th>
-                    <th className="py-3 px-4 font-medium">Paid</th>
-                    <th className="py-3 px-4 font-medium text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60 font-mono">
-                  {client.invoices?.map((inv: any) => (
-                    <tr key={inv.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3.5 px-4 font-medium text-foreground">
-                        <button
-                          onClick={() => setSelectedInvoiceId(inv.id)}
-                          className="hover:underline font-mono text-xs font-semibold cursor-pointer text-foreground flex items-center gap-1.5"
-                          title="View Indian GST Tax Invoice"
-                        >
-                          <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span>{inv.invoiceNumber}</span>
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4 text-muted-foreground">
-                        {formatDate(inv.issueDate)}
-                      </td>
-                      <td className="py-3.5 px-4 text-muted-foreground">
-                        {formatDate(inv.dueDate)}
-                      </td>
-                      <td className="py-3.5 px-4 tabular-nums">{formatINR(Number(inv.subTotal))}</td>
-                      <td className="py-3.5 px-4 tabular-nums text-muted-foreground">
-                        {formatINR(Number(inv.cgstAmount) + Number(inv.sgstAmount) + Number(inv.igstAmount))}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-foreground tabular-nums">
-                        {formatINR(Number(inv.totalAmount))}
-                      </td>
-                      <td className="py-3.5 px-4 text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
-                        {formatINR(Number(inv.paidAmount))}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-medium text-foreground">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              inv.status === "PAID"
-                                ? "bg-emerald-500"
-                                : inv.status === "PARTIAL"
-                                ? "bg-amber-500"
-                                : "bg-rose-500"
-                            }`}
-                          />
-                          {inv.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {client.invoices?.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="py-12 text-center text-muted-foreground text-xs font-sans">
-                        No invoices generated for this client yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="py-3 px-4 font-mono text-[11px]">Invoice #</TableHead>
+                  <TableHead className="py-3 px-4 font-mono text-[11px]">Issue Date</TableHead>
+                  <TableHead className="py-3 px-4 font-mono text-[11px]">Due Date</TableHead>
+                  <TableHead className="py-3 px-4 font-mono text-[11px] text-right">Subtotal</TableHead>
+                  <TableHead className="py-3 px-4 font-mono text-[11px] text-right">GST</TableHead>
+                  <TableHead className="py-3 px-4 font-mono text-[11px] text-right">Total Amount</TableHead>
+                  <TableHead className="py-3 px-4 font-mono text-[11px] text-right">Paid</TableHead>
+                  <TableHead className="py-3 px-4 font-mono text-[11px] text-center">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {client.invoices?.map((inv: any) => (
+                  <TableRow key={inv.id} className="group">
+                    <TableCell className="py-3 px-4 font-medium text-foreground">
+                      <button
+                        onClick={() => setSelectedInvoiceId(inv.id)}
+                        className="hover:underline font-mono text-xs font-semibold cursor-pointer text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 flex items-center gap-1.5 transition-colors"
+                        title="View Indian GST Tax Invoice"
+                      >
+                        <Receipt className="w-3.5 h-3.5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                        <span>{inv.invoiceNumber}</span>
+                      </button>
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-muted-foreground font-mono text-[11px]">
+                      {formatDate(inv.issueDate)}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-muted-foreground font-mono text-[11px]">
+                      {formatDate(inv.dueDate)}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right font-mono tabular-nums">
+                      {formatINR(Number(inv.subTotal))}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right font-mono tabular-nums text-muted-foreground">
+                      {formatINR(Number(inv.cgstAmount) + Number(inv.sgstAmount) + Number(inv.igstAmount))}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right font-mono font-semibold text-foreground tabular-nums">
+                      {formatINR(Number(inv.totalAmount))}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
+                      {formatINR(Number(inv.paidAmount))}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-center">
+                      <Badge
+                        variant={
+                          inv.status === "PAID"
+                            ? "success"
+                            : inv.status === "PARTIAL"
+                            ? "amber"
+                            : "destructive"
+                        }
+                        className="font-mono text-[10px]"
+                      >
+                        {inv.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {client.invoices?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-12 text-center text-muted-foreground text-xs font-sans">
+                      No invoices generated for this client yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         )}
 

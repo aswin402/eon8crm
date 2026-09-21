@@ -19,6 +19,15 @@ import { toast } from "@/components/ui/toast";
 import { CreateTicketModal } from "@/components/tickets";
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -94,24 +103,24 @@ export default function TicketsPage() {
           <div className="flex items-center bg-muted/40 border border-border/80 p-0.5 rounded-lg text-xs">
             <button
               onClick={() => setPriorityFilter("")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                priorityFilter === "" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                priorityFilter === "" ? "bg-amber-500 text-slate-950 font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               All
             </button>
             <button
               onClick={() => setPriorityFilter("URGENT")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                priorityFilter === "URGENT" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                priorityFilter === "URGENT" ? "bg-amber-500 text-slate-950 font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Urgent
             </button>
             <button
               onClick={() => setPriorityFilter("HIGH")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                priorityFilter === "HIGH" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                priorityFilter === "HIGH" ? "bg-amber-500 text-slate-950 font-semibold shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               High
@@ -120,7 +129,7 @@ export default function TicketsPage() {
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background hover:bg-foreground/90 rounded-md text-xs font-medium transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Ticket</span>
@@ -141,7 +150,7 @@ export default function TicketsPage() {
             <p className="text-[11px] text-muted-foreground">All client support requests</p>
           </div>
 
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+          <div className="p-4 rounded-xl border border-amber-500/20 bg-card/70 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-md hover:shadow-amber-500/5 space-y-1 backdrop-blur-xs">
             <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Urgent / High</span>
             <div className="text-xl font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400">
               {urgentCount}
@@ -149,7 +158,7 @@ export default function TicketsPage() {
             <p className="text-[11px] text-muted-foreground">Critical path resolution</p>
           </div>
 
-          <div className="p-4 rounded-xl border border-border/80 bg-card/60 space-y-1">
+          <div className="p-4 rounded-xl border border-rose-500/20 bg-card/60 space-y-1">
             <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">SLA Breached</span>
             <div className="text-xl font-semibold font-mono tabular-nums text-rose-600 dark:text-rose-400">
               {breachedCount}
@@ -172,40 +181,48 @@ export default function TicketsPage() {
         <TableSkeleton rows={6} columns={7} />
       ) : (
         <div className="rounded-xl bg-card border border-border/80 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-            <thead className="bg-muted/30 border-b border-border/80 text-muted-foreground font-mono text-[11px] uppercase tracking-wider">
-              <tr>
-                <th className="py-3 px-4 font-medium">Ticket #</th>
-                <th className="py-3 px-4 font-medium">Client</th>
-                <th className="py-3 px-4 font-medium">Subject & Summary</th>
-                <th className="py-3 px-4 font-medium">Priority</th>
-                <th className="py-3 px-4 font-medium">SLA Countdown</th>
-                <th className="py-3 px-4 font-medium">Status</th>
-                <th className="py-3 px-4 font-medium text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="py-3 px-4 font-medium font-mono text-[11px]">Ticket #</TableHead>
+                <TableHead className="py-3 px-4 font-medium">Client</TableHead>
+                <TableHead className="py-3 px-4 font-medium">Subject & Summary</TableHead>
+                <TableHead className="py-3 px-4 font-medium">Priority</TableHead>
+                <TableHead className="py-3 px-4 font-medium font-mono text-[11px]">SLA Countdown</TableHead>
+                <TableHead className="py-3 px-4 font-medium font-mono text-[11px]">Status</TableHead>
+                <TableHead className="py-3 px-4 font-medium text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {tickets.map((t) => {
                 const isBreached = t.sla?.isBreached;
                 const remainingMins = t.sla?.timeRemainingMinutes;
 
                 return (
-                  <tr
+                  <TableRow
                     key={t.id}
                     onClick={() => setSelectedTicket(t)}
-                    className="hover:bg-muted/30 transition-colors cursor-pointer"
+                    className="group cursor-pointer"
                   >
-                    <td className="py-3.5 px-4 font-mono font-medium text-foreground">{t.ticketNumber}</td>
-                    <td className="py-3.5 px-4 font-medium text-foreground">
+                    <TableCell className="py-3.5 px-4 font-mono font-medium text-foreground">{t.ticketNumber}</TableCell>
+                    <TableCell className="py-3.5 px-4 font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                       {t.client?.companyName}
-                    </td>
-                    <td className="py-3.5 px-4 max-w-xs">
+                    </TableCell>
+                    <TableCell className="py-3.5 px-4 max-w-xs">
                       <p className="font-medium text-foreground truncate">{t.subject}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{t.description}</p>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-medium text-foreground">
+                    </TableCell>
+                    <TableCell className="py-3.5 px-4 font-mono">
+                      <Badge
+                        variant={
+                          t.priority === "URGENT"
+                            ? "destructive"
+                            : t.priority === "HIGH"
+                            ? "amber"
+                            : "info"
+                        }
+                        className="gap-1.5 font-mono text-[10px]"
+                      >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             t.priority === "URGENT"
@@ -216,9 +233,9 @@ export default function TicketsPage() {
                           }`}
                         />
                         {t.priority}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-xs">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-4 font-mono text-xs">
                       {t.status === "RESOLVED" || t.status === "CLOSED" ? (
                         <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-medium text-[11px]">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Resolved
@@ -235,13 +252,13 @@ export default function TicketsPage() {
                       ) : (
                         <span className="text-muted-foreground">Standard</span>
                       )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono bg-muted/40 text-foreground border border-border/80">
+                    </TableCell>
+                    <TableCell className="py-3.5 px-4">
+                      <Badge variant="outline" className="text-[10px] font-mono">
                         {t.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-4 text-right">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -250,26 +267,29 @@ export default function TicketsPage() {
                             t.status === "RESOLVED" ? "OPEN" : "RESOLVED"
                           );
                         }}
-                        className="text-xs font-medium px-2.5 py-1 rounded-md border border-border/80 bg-background hover:bg-muted text-foreground transition-colors cursor-pointer shadow-2xs"
+                        className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition-all cursor-pointer shadow-2xs ${
+                          t.status === "RESOLVED"
+                            ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                            : "border-border/80 bg-background hover:bg-muted text-foreground"
+                        }`}
                       >
                         {t.status === "RESOLVED" ? "Re-open" : "Mark Resolved"}
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
 
               {tickets.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground text-xs">
+                <TableRow>
+                  <TableCell colSpan={7} className="py-12 text-center text-muted-foreground text-xs">
                     No support tickets found for this filter.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
       )}
 
       {/* Ticket Details Sheet Drawer */}

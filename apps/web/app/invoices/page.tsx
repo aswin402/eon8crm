@@ -42,6 +42,16 @@ import { formatINR, formatDate } from "@/lib/utils";
 import { Invoice, AgingReportResponse } from "@/types/schema";
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -224,13 +234,15 @@ export default function InvoicesPage() {
             )}
           </div>
 
-          <button
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background hover:bg-foreground/90 rounded-md text-xs font-medium transition-colors cursor-pointer shadow-2xs"
+            variant="amber"
+            size="sm"
+            className="gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Invoice</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -240,7 +252,7 @@ export default function InvoicesPage() {
           onClick={() => setActiveTab("ledger")}
           className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-xs transition-colors cursor-pointer ${
             activeTab === "ledger"
-              ? "border-primary text-foreground"
+              ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -258,7 +270,7 @@ export default function InvoicesPage() {
           }}
           className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-xs transition-colors cursor-pointer ${
             activeTab === "aging"
-              ? "border-primary text-foreground"
+              ? "border-amber-500 text-amber-600 dark:text-amber-400 font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -316,130 +328,126 @@ export default function InvoicesPage() {
       </div>
 
       {/* Invoices High-Density Table */}
-      <div className="rounded-xl bg-card border border-border/80 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-muted/30 border-b border-border/80 text-muted-foreground font-mono text-[11px] uppercase tracking-wider">
-              <tr>
-                <th className="py-3 px-4 font-medium">Invoice #</th>
-                <th className="py-3 px-4 font-medium">Client & GSTIN</th>
-                <th className="py-3 px-4 font-medium">Issue Date</th>
-                <th className="py-3 px-4 font-medium">Due Date</th>
-                <th className="py-3 px-4 font-medium">Total Amount</th>
-                <th className="py-3 px-4 font-medium">Paid</th>
-                <th className="py-3 px-4 font-medium">Balance</th>
-                <th className="py-3 px-4 font-medium">Status</th>
-                <th className="py-3 px-4 font-medium text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {invoices.map((inv) => {
-                const total = Number(inv.totalAmount);
-                const paid = Number(inv.paidAmount);
-                const balance = total - paid;
-                const isOverdue = inv.status !== "PAID" && new Date(inv.dueDate) < new Date();
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invoice #</TableHead>
+            <TableHead>Client & GSTIN</TableHead>
+            <TableHead>Issue Date</TableHead>
+            <TableHead>Due Date</TableHead>
+            <TableHead className="text-right">Total Amount</TableHead>
+            <TableHead className="text-right">Paid</TableHead>
+            <TableHead className="text-right">Balance</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invoices.map((inv) => {
+            const total = Number(inv.totalAmount);
+            const paid = Number(inv.paidAmount);
+            const balance = total - paid;
+            const isOverdue = inv.status !== "PAID" && new Date(inv.dueDate) < new Date();
 
-                return (
-                  <tr key={inv.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-medium text-foreground">
+            return (
+              <TableRow key={inv.id}>
+                <TableCell className="font-mono font-semibold text-foreground">
+                  <button
+                    onClick={() => setPreviewInvoiceId(inv.id)}
+                    className="font-mono font-semibold text-foreground hover:text-amber-500 hover:underline text-left cursor-pointer flex items-center gap-1 group"
+                    title="View & Print Tax Invoice"
+                  >
+                    <span>{inv.invoiceNumber}</span>
+                  </button>
+                </TableCell>
+                <TableCell>
+                  <p className="font-medium text-foreground text-xs">{inv.client?.companyName}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    {inv.client?.gstin || "Unregistered"}
+                  </p>
+                </TableCell>
+                <TableCell className="text-muted-foreground font-mono">
+                  {formatDate(inv.issueDate)}
+                </TableCell>
+                <TableCell className="font-mono">
+                  <span className={isOverdue ? "text-rose-600 dark:text-rose-400 font-semibold" : "text-muted-foreground"}>
+                    {formatDate(inv.dueDate)}
+                  </span>
+                </TableCell>
+                <TableCell className="font-mono font-semibold text-foreground tabular-nums text-right">
+                  {formatINR(total)}
+                </TableCell>
+                <TableCell className="font-mono text-emerald-600 dark:text-emerald-400 tabular-nums font-semibold text-right">
+                  {formatINR(paid)}
+                </TableCell>
+                <TableCell className="font-mono tabular-nums text-right">
+                  <span className={balance > 0 ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-muted-foreground"}>
+                    {formatINR(balance)}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      inv.status === "PAID"
+                        ? "success"
+                        : inv.status === "PARTIAL"
+                        ? "amber"
+                        : isOverdue
+                        ? "destructive"
+                        : "info"
+                    }
+                    className="font-mono text-[10px]"
+                  >
+                    {inv.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => setPreviewInvoiceId(inv.id)}
+                      className="p-1.5 rounded-md border border-border/80 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      title="View & Print Tax Invoice"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                    </button>
+
+                    {balance > 0 && isOverdue && (
                       <button
-                        onClick={() => setPreviewInvoiceId(inv.id)}
-                        className="font-mono font-medium text-foreground hover:underline text-left cursor-pointer flex items-center gap-1 group"
-                        title="View & Print Tax Invoice"
+                        onClick={() => setDunningTargetInvoice(inv)}
+                        className="inline-flex items-center gap-1 px-2 py-1 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-md transition-colors cursor-pointer shadow-2xs"
+                        title="Dispatch Formal Dunning Notice"
                       >
-                        <span>{inv.invoiceNumber}</span>
+                        <ShieldAlert className="w-3 h-3" />
+                        <span>Dunning</span>
                       </button>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <p className="font-medium text-foreground text-xs">{inv.client?.companyName}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">
-                        {inv.client?.gstin || "Unregistered"}
-                      </p>
-                    </td>
-                    <td className="py-3.5 px-4 text-muted-foreground font-mono">
-                      {formatDate(inv.issueDate)}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono">
-                      <span className={isOverdue ? "text-rose-600 font-medium" : "text-muted-foreground"}>
-                        {formatDate(inv.dueDate)}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono font-medium text-foreground tabular-nums">
-                      {formatINR(total)}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-emerald-600 dark:text-emerald-400 tabular-nums font-medium">
-                      {formatINR(paid)}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono tabular-nums">
-                      <span className={balance > 0 ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}>
-                        {formatINR(balance)}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/80 bg-muted/40 text-[11px] font-medium text-foreground font-mono">
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            inv.status === "PAID"
-                              ? "bg-emerald-500"
-                              : inv.status === "PARTIAL"
-                              ? "bg-amber-500"
-                              : isOverdue
-                          ? "bg-rose-500"
-                              : "bg-sky-500"
-                          }`}
-                        />
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setPreviewInvoiceId(inv.id)}
-                          className="p-1.5 rounded-md border border-border/80 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                          title="View & Print Tax Invoice"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                        </button>
+                    )}
 
-                        {balance > 0 && isOverdue && (
-                          <button
-                            onClick={() => setDunningTargetInvoice(inv)}
-                            className="inline-flex items-center gap-1 px-2 py-1 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-md transition-colors cursor-pointer shadow-2xs"
-                            title="Dispatch Formal Dunning Notice"
-                          >
-                            <ShieldAlert className="w-3 h-3" />
-                            <span>Dunning</span>
-                          </button>
-                        )}
+                    {balance > 0 ? (
+                      <button
+                        onClick={() => setPaymentTargetInvoice(inv)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold rounded-md transition-colors cursor-pointer shadow-2xs"
+                      >
+                        <CreditCard className="w-3 h-3 text-amber-500" />
+                        <span>Record Pay</span>
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground font-mono px-2 py-1">Settled</span>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
 
-                        {balance > 0 ? (
-                          <button
-                            onClick={() => setPaymentTargetInvoice(inv)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-border/80 bg-background hover:bg-muted text-foreground text-xs font-medium rounded-md transition-colors cursor-pointer shadow-2xs"
-                          >
-                            <CreditCard className="w-3 h-3 text-muted-foreground" />
-                            <span>Record Pay</span>
-                          </button>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground font-mono px-2 py-1">Settled</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {invoices.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground text-xs">
-                    No invoices found for this filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          {invoices.length === 0 && !loading && (
+            <TableRow>
+              <TableCell colSpan={9} className="py-12 text-center text-muted-foreground text-xs">
+                No invoices found for this filter.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 )}

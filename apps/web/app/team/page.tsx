@@ -6,6 +6,16 @@ import { logger } from "@/lib/logger";
 import { formatINR } from "@/lib/utils";
 import { EditUserModal } from "@/components/team";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
   Shield,
   ShieldAlert,
   Edit2,
@@ -227,125 +237,130 @@ export default function TeamPage() {
       </div>
 
       {/* User Table */}
-      <div className="bg-card/60 border border-border/80 rounded-xl shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-medium">
-                <th className="py-2.5 px-4">Staff Member</th>
-                <th className="py-2.5 px-4">Role</th>
-                <th className="py-2.5 px-4">Workload Metrics</th>
-                <th className="py-2.5 px-4 text-right font-mono text-[11px]">Internal Cost (₹/hr)</th>
-                <th className="py-2.5 px-4 text-right font-mono text-[11px]">Billable Rate (₹/hr)</th>
-                <th className="py-2.5 px-4 text-right font-mono text-[11px]">Labor Margin</th>
-                <th className="py-2.5 px-4 text-center">Status</th>
-                <th className="py-2.5 px-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                    <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-foreground" />
-                    Loading team roster...
-                  </td>
-                </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                    No team members found.
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((user) => {
-                  const cost = Number(user.internalCostRate);
-                  const billable = Number(user.billableRate);
-                  const marginPct = billable > 0 ? Math.round(((billable - cost) / billable) * 100) : 0;
+      <div className="bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="py-3 px-4">Staff Member</TableHead>
+              <TableHead className="py-3 px-4">Role</TableHead>
+              <TableHead className="py-3 px-4 font-mono text-[11px]">Workload Metrics</TableHead>
+              <TableHead className="py-3 px-4 text-right font-mono text-[11px]">Internal Cost (₹/hr)</TableHead>
+              <TableHead className="py-3 px-4 text-right font-mono text-[11px]">Billable Rate (₹/hr)</TableHead>
+              <TableHead className="py-3 px-4 text-right font-mono text-[11px]">Labor Margin</TableHead>
+              <TableHead className="py-3 px-4 text-center">Status</TableHead>
+              <TableHead className="py-3 px-4 text-center">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2 text-foreground" />
+                  Loading team roster...
+                </TableCell>
+              </TableRow>
+            ) : filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                  No team members found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredUsers.map((user) => {
+                const cost = Number(user.internalCostRate);
+                const billable = Number(user.billableRate);
+                const marginPct = billable > 0 ? Math.round(((billable - cost) / billable) * 100) : 0;
 
-                  return (
-                    <tr key={user.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-2.5 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-muted/60 border border-border/80 text-foreground font-mono text-xs flex items-center justify-center shrink-0">
+                return (
+                  <TableRow key={user.id} className="group">
+                    <TableCell className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-8 h-8 ring-1 ring-amber-500/20">
+                          <AvatarFallback className="bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono text-xs font-bold">
                             {user.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{user.name}</p>
-                            <p className="text-[11px] text-muted-foreground font-mono">
-                              {user.email}
-                            </p>
-                          </div>
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            {user.name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-mono">
+                            {user.email}
+                          </p>
                         </div>
-                      </td>
+                      </div>
+                    </TableCell>
 
-                      <td className="py-2.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md font-mono bg-muted/40 border border-border/80 text-foreground">
-                          <span className={`w-1.5 h-1.5 rounded-full ${getRoleDot(user.role)}`} />
-                          {formatRoleLabel(user.role)}
+                    <TableCell className="py-3 px-4">
+                      <Badge variant="outline" className="gap-1.5 font-mono text-[11px]">
+                        <span className={`w-1.5 h-1.5 rounded-full ${getRoleDot(user.role)}`} />
+                        {formatRoleLabel(user.role)}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell className="py-3 px-4">
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
+                        <span title="Assigned Tasks" className="flex items-center gap-1">
+                          <CheckSquare className="w-3.5 h-3.5 text-muted-foreground/70" />
+                          {user._count.assignedTasks}
                         </span>
-                      </td>
-
-                      <td className="py-2.5 px-4">
-                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
-                          <span title="Assigned Tasks" className="flex items-center gap-1">
-                            <CheckSquare className="w-3.5 h-3.5 text-muted-foreground/70" />
-                            {user._count.assignedTasks}
-                          </span>
-                          <span title="Time Logs" className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-muted-foreground/70" />
-                            {user._count.timeEntries}
-                          </span>
-                          {user.role === "PROJECT_MANAGER" && (
-                            <span title="Managed Projects" className="flex items-center gap-1 text-foreground font-semibold">
-                              <Briefcase className="w-3.5 h-3.5" />
-                              {user._count.managedProjects}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right font-mono font-medium tabular-nums text-foreground">
-                        {formatINR(cost)}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right font-mono font-medium tabular-nums text-foreground">
-                        {formatINR(billable)}
-                      </td>
-
-                      <td className="py-2.5 px-4 text-right">
-                        <span className="font-mono text-[11px] px-2 py-0.5 rounded-md font-medium bg-muted/40 border border-border/80 tabular-nums text-foreground">
-                          {marginPct}%
+                        <span title="Time Logs" className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground/70" />
+                          {user._count.timeEntries}
                         </span>
-                      </td>
-
-                      <td className="py-2.5 px-4 text-center">
-                        {user.isActive ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-foreground font-mono">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-mono">
-                            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" /> Inactive
+                        {user.role === "PROJECT_MANAGER" && (
+                          <span title="Managed Projects" className="flex items-center gap-1 text-foreground font-semibold">
+                            <Briefcase className="w-3.5 h-3.5 text-amber-500" />
+                            {user._count.managedProjects}
                           </span>
                         )}
-                      </td>
+                      </div>
+                    </TableCell>
 
-                      <td className="py-2.5 px-4 text-center">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-                          title="Edit Costing & Role"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                    <TableCell className="py-3 px-4 text-right font-mono font-medium tabular-nums text-foreground">
+                      {formatINR(cost)}
+                    </TableCell>
+
+                    <TableCell className="py-3 px-4 text-right font-mono font-medium tabular-nums text-foreground">
+                      {formatINR(billable)}
+                    </TableCell>
+
+                    <TableCell className="py-3 px-4 text-right">
+                      <Badge
+                        variant={marginPct >= 40 ? "success" : marginPct >= 20 ? "amber" : "outline"}
+                        className="font-mono text-[11px] tabular-nums"
+                      >
+                        {marginPct}%
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell className="py-3 px-4 text-center">
+                      {user.isActive ? (
+                        <Badge variant="success" className="font-mono text-[10px] gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="font-mono text-[10px]">
+                          Inactive
+                        </Badge>
+                      )}
+                    </TableCell>
+
+                    <TableCell className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                        title="Edit Costing & Role"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Edit User Modal */}

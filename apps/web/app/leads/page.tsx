@@ -29,6 +29,15 @@ import { NewLeadModal } from "@/components/leads/NewLeadModal";
 import { MetricCardSkeleton, KanbanColumnSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { logger } from "@/lib/logger";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const PIPELINE_STAGES = [
   "NEW",
@@ -41,6 +50,21 @@ const PIPELINE_STAGES = [
 ] as const;
 
 type PipelineStage = (typeof PIPELINE_STAGES)[number];
+
+const getStageBadgeVariant = (stage: PipelineStage) => {
+  switch (stage) {
+    case "WON":
+      return "success" as const;
+    case "NEGOTIATION":
+    case "PROPOSAL":
+      return "amber" as const;
+    case "QUALIFIED":
+    case "MEETING":
+      return "info" as const;
+    default:
+      return "secondary" as const;
+  }
+};
 
 interface Lead {
   id: string;
@@ -282,7 +306,7 @@ export default function LeadsPage() {
           {/* New Lead Action */}
           <button
             onClick={() => setShowNewLeadModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-foreground hover:bg-foreground/90 text-background rounded-md text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-lg text-xs font-semibold transition-all shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 cursor-pointer active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Lead</span>
@@ -295,10 +319,10 @@ export default function LeadsPage() {
         <MetricCardSkeleton count={4} />
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
-          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-3.5 rounded-xl border border-amber-500/20 bg-card/70 hover:border-amber-500/40 transition-all shadow-2xs hover:shadow-md hover:shadow-amber-500/5 backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Active Pipeline</span>
-              <DollarSign className="w-4 h-4 text-muted-foreground/70" />
+              <DollarSign className="w-4 h-4 text-amber-500" />
             </div>
             <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
               {formatCompactINR(totalPipelineValue)}
@@ -306,7 +330,7 @@ export default function LeadsPage() {
             <p className="text-[11px] text-muted-foreground mt-0.5">{activeLeads.length} open opportunities</p>
           </div>
 
-          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 hover:border-border transition-all shadow-2xs backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Closed Won</span>
               <TrendingUp className="w-4 h-4 text-emerald-500/80" />
@@ -317,10 +341,10 @@ export default function LeadsPage() {
             <p className="text-[11px] text-muted-foreground mt-0.5">{wonLeads.length} converted accounts</p>
           </div>
 
-          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-3.5 rounded-xl border border-amber-500/15 bg-card/60 hover:border-amber-500/30 transition-all shadow-2xs backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Win Rate</span>
-              <CheckCircle2 className="w-4 h-4 text-muted-foreground/70" />
+              <CheckCircle2 className="w-4 h-4 text-amber-500/80" />
             </div>
             <div className="mt-1.5 text-xl font-bold font-mono tracking-tight tabular-nums text-foreground">
               {winRate}%
@@ -328,7 +352,7 @@ export default function LeadsPage() {
             <p className="text-[11px] text-muted-foreground mt-0.5">Won vs. total pipeline</p>
           </div>
 
-          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs backdrop-blur-xs">
+          <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 hover:border-border transition-all shadow-2xs backdrop-blur-xs">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
               <span>Average Deal Size</span>
               <Briefcase className="w-4 h-4 text-muted-foreground/70" />
@@ -367,7 +391,7 @@ export default function LeadsPage() {
                   onDrop={(e) => handleDrop(e, stage)}
                   className={`w-72 shrink-0 flex flex-col h-full bg-muted/15 border rounded-xl p-2.5 space-y-2.5 transition-all ${
                     isDropTarget
-                      ? "border-foreground/60 bg-muted/30 ring-1 ring-foreground/20"
+                      ? "border-amber-500/60 bg-amber-500/5 ring-1 ring-amber-500/30"
                       : "border-border/80"
                   }`}
                 >
@@ -395,7 +419,7 @@ export default function LeadsPage() {
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead.id)}
                         onClick={() => setSelectedLead(lead)}
-                        className={`p-3 rounded-lg bg-card/90 border border-border/80 shadow-2xs hover:border-foreground/40 hover:shadow-xs transition-all space-y-2 group cursor-pointer select-none ${
+                        className={`p-3 rounded-lg bg-card/90 border border-border/80 shadow-2xs hover:border-amber-500/40 hover:shadow-md hover:shadow-amber-500/5 transition-all space-y-2 group cursor-pointer select-none ${
                           draggedLeadId === lead.id ? "opacity-40" : ""
                         }`}
                       >
@@ -412,7 +436,7 @@ export default function LeadsPage() {
 
                         {/* Company & Contact */}
                         <div>
-                          <h4 className="font-medium text-xs text-foreground group-hover:underline leading-tight truncate">
+                          <h4 className="font-medium text-xs text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:underline leading-tight truncate transition-colors">
                             {lead.companyName}
                           </h4>
                           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
@@ -440,7 +464,7 @@ export default function LeadsPage() {
                                   handleStatusChange(lead.id, PIPELINE_STAGES[nextIndex]);
                                 }
                               }}
-                              className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/60 border border-border/80 px-2 py-0.5 rounded-md transition-colors cursor-pointer w-full justify-center"
+                              className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 bg-muted/30 hover:bg-amber-500/10 border border-border/80 hover:border-amber-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer w-full justify-center"
                             >
                               <span>Next Stage</span>
                               <ChevronRight className="w-3 h-3" />
@@ -467,66 +491,66 @@ export default function LeadsPage() {
           </div>
         </div>
       ) : (
-        /* List View */
-        <div className="flex-1 overflow-auto rounded-xl bg-card/60 border border-border/80 shadow-2xs">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-muted/30 border-b border-border/80 text-muted-foreground font-medium">
-              <tr>
-                <th className="py-2.5 px-3 font-mono text-[11px]">Lead Ref</th>
-                <th className="py-2.5 px-3">Company</th>
-                <th className="py-2.5 px-3">Contact</th>
-                <th className="py-2.5 px-3">Stage</th>
-                <th className="py-2.5 px-3 font-mono text-right text-[11px]">Estimated Value</th>
-                <th className="py-2.5 px-3">Owner</th>
-                <th className="py-2.5 px-3 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
+        /* List View using Shadcn Table Suite */
+        <div className="flex-1 overflow-auto rounded-xl bg-card border border-border/80 shadow-2xs">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-mono text-[11px]">Lead Ref</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Stage</TableHead>
+                <TableHead className="font-mono text-right text-[11px]">Estimated Value</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead className="text-center">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredLeads.map((lead) => (
-                <tr
+                <TableRow
                   key={lead.id}
                   onClick={() => setSelectedLead(lead)}
-                  className="hover:bg-muted/20 transition-colors cursor-pointer"
+                  className="cursor-pointer group"
                 >
-                  <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                  <TableCell className="font-mono text-muted-foreground">
                     {lead.leadNumber}
-                  </td>
-                  <td className="py-2.5 px-3 font-medium text-foreground">
+                  </TableCell>
+                  <TableCell className="font-medium text-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                     {lead.companyName}
-                  </td>
-                  <td className="py-2.5 px-3 text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {lead.contactPerson}
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-mono border border-border/80 bg-muted/40 text-foreground">
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStageBadgeVariant(lead.status)} className="gap-1.5 font-mono text-[11px]">
                       <span className={`w-1.5 h-1.5 rounded-full ${getStageDot(lead.status)}`} />
                       {lead.status}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-mono font-semibold tabular-nums text-foreground">
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-semibold tabular-nums text-foreground">
                     {formatCompactINR(Number(lead.estimatedValue))}
-                  </td>
-                  <td className="py-2.5 px-3 text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {lead.assignedTo?.name || "Unassigned"}
-                  </td>
-                  <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                  </TableCell>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {lead.status !== "WON" ? (
                       <button
                         onClick={() => handleStatusChange(lead.id, "WON")}
-                        className="text-[11px] px-2.5 py-1 rounded-md border border-border/80 hover:bg-muted/50 text-foreground transition-colors font-medium cursor-pointer shadow-2xs"
+                        className="text-[11px] px-2.5 py-1 rounded-md border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium transition-colors cursor-pointer shadow-2xs"
                       >
                         Convert to Client
                       </button>
                     ) : (
-                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+                      <Badge variant="success" className="font-mono text-[11px]">
                         Won
-                      </span>
+                      </Badge>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
