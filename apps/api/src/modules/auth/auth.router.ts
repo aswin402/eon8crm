@@ -46,9 +46,13 @@ authRouter.post("/login", async (c) => {
   const token = await sign(tokenPayload, JWT_SECRET, "HS256");
 
   // Also set HTTP-only cookie
+  const isProduction = process.env.NODE_ENV === "production";
+  const cookieFlags = isProduction
+    ? "Path=/; HttpOnly; Secure; SameSite=None"
+    : "Path=/; HttpOnly; SameSite=Lax";
   c.header(
     "Set-Cookie",
-    `eon8_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`
+    `eon8_token=${token}; ${cookieFlags}; Max-Age=${60 * 60 * 24 * 7}`
   );
 
   return c.json({

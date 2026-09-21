@@ -84,8 +84,10 @@ export default function LoginPage() {
         window.location.href = "/";
       }
     } catch (err: any) {
+      const serverError = err.response?.data?.error;
+      const networkError = err.message ? `Connection Error (${err.message})` : "Unable to reach API server.";
       setErrorMsg(
-        err.response?.data?.error || "Invalid credentials. Please verify your email and password."
+        serverError || (err.response ? "Invalid credentials. Please verify your email and password." : networkError)
       );
     } finally {
       setIsLoading(false);

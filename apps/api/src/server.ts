@@ -28,10 +28,34 @@ app.use("*", httpLogger());
 app.use(
   "*",
   cors({
-    origin: CORS_ORIGINS,
+    origin: (origin) => {
+      if (!origin) return "*";
+      // Allow localhost and local IP
+      if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+        return origin;
+      }
+      // Allow all Vercel domains (production and preview)
+      if (origin.endsWith(".vercel.app") || origin.includes("vercel.app")) {
+        return origin;
+      }
+      // Allow configured CORS_ORIGINS
+      if (
+        CORS_ORIGINS.some(
+          (allowed) =>
+            allowed === "*" ||
+            allowed === origin ||
+            (allowed.startsWith("*.") && origin.endsWith(allowed.slice(2)))
+        )
+      ) {
+        return origin;
+      }
+      return origin;
+    },
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposeHeaders: ["Set-Cookie"],
+    maxAge: 86400,
   })
 );
 
