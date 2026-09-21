@@ -22,6 +22,7 @@ import {
   Layers,
 } from "lucide-react";
 import api from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { formatINR, formatCompactINR, formatDate } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
 import { InvoicePreviewModal } from "@/components/invoices/InvoicePreviewModal";
@@ -42,7 +43,7 @@ export default function Client360Page() {
         .then((res) => {
           setClient(res.data.client);
         })
-        .catch((err) => console.error("Client 360 error:", err))
+        .catch((err) => logger.warn("DATA", "Client 360 fetch error", err?.message))
         .finally(() => setLoading(false));
     }
   }, [clientId]);

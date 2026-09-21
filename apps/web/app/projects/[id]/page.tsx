@@ -29,6 +29,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import api from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { formatINR, formatCompactINR, formatDate } from "@/lib/utils";
 import { Chatter } from "@/components/common/Chatter";
 import {
@@ -210,8 +211,8 @@ export default function ProjectDetailPage() {
           setProfitability(res.data.profitability);
         }
       })
-      .catch((err) => {
-        console.error("Project fetch error:", err);
+      .catch((err: any) => {
+        logger.warn("DATA", "Project fetch error", err?.message);
         setFeedback({ type: "error", text: "Failed to load project details." });
       })
       .finally(() => setLoading(false));

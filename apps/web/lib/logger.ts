@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Enterprise Frontend Logger with Structured Telemetry & DevTools Buffer
  * Provides clean, color-coded diagnostic logs for both humans and AI inspectors.
@@ -11,17 +12,25 @@ export interface LogEntry {
   level: LogLevel;
   category: LogCategory;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 // In-memory buffer of recent logs (capped at 100 entries)
 const MAX_LOG_BUFFER = 100;
 const logBuffer: LogEntry[] = [];
 
+// Augment window interface for clean type safety
+declare global {
+  interface Window {
+    __EON8_LOGS__?: LogEntry[];
+    __EON8_GET_LOGS__?: () => string;
+  }
+}
+
 // Expose buffer to window for automated debugging or AI inspection
 if (typeof window !== "undefined") {
-  (window as any).__EON8_LOGS__ = logBuffer;
-  (window as any).__EON8_GET_LOGS__ = () => JSON.stringify(logBuffer, null, 2);
+  window.__EON8_LOGS__ = logBuffer;
+  window.__EON8_GET_LOGS__ = () => JSON.stringify(logBuffer, null, 2);
 }
 
 const BADGE_COLORS: Record<LogCategory, string> = {
@@ -38,7 +47,7 @@ function formatTime(): string {
   return new Date().toISOString().substring(11, 23);
 }
 
-function recordLog(level: LogLevel, category: LogCategory, message: string, data?: any) {
+function recordLog(level: LogLevel, category: LogCategory, message: string, data?: unknown) {
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
@@ -71,20 +80,26 @@ function recordLog(level: LogLevel, category: LogCategory, message: string, data
         console.warn(prefix, badgeStyle, resetStyle, data !== undefined ? data : "");
         break;
       case "error":
-        console.error(prefix, badgeStyle, resetStyle, data !== undefined ? data : "");
+        // In dev, Next.js Turbopack intercepts console.error and prints stack frames to the terminal.
+        // We use console.warn in non-production to keep the CLI clean while preserving DevTools logs.
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(prefix, badgeStyle, resetStyle, data !== undefined ? data : "");
+        } else {
+          console.error(prefix, badgeStyle, resetStyle, data !== undefined ? data : "");
+        }
         break;
     }
   }
 }
 
 export const logger = {
-  debug: (category: LogCategory, message: string, data?: any) =>
+  debug: (category: LogCategory, message: string, data?: unknown) =>
     recordLog("debug", category, message, data),
-  info: (category: LogCategory, message: string, data?: any) =>
+  info: (category: LogCategory, message: string, data?: unknown) =>
     recordLog("info", category, message, data),
-  warn: (category: LogCategory, message: string, data?: any) =>
+  warn: (category: LogCategory, message: string, data?: unknown) =>
     recordLog("warn", category, message, data),
-  error: (category: LogCategory, message: string, data?: any) =>
+  error: (category: LogCategory, message: string, data?: unknown) =>
     recordLog("error", category, message, data),
   getHistory: () => [...logBuffer],
   clearHistory: () => {
@@ -93,3 +108,4 @@ export const logger = {
 };
 
 export default logger;
+

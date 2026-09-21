@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { formatINR, formatDate } from "@/lib/utils";
 import {
   CreditCard,
@@ -47,8 +48,8 @@ export default function PaymentsPage() {
       const res = await api.get("/api/v1/invoices/payments/all");
       setPayments(res.data.payments || []);
       setTotalCollected(res.data.totalCollected || 0);
-    } catch (err) {
-      console.error("Failed to load payments:", err);
+    } catch (err: any) {
+      logger.warn("DATA", "Failed to load payments", err?.message);
     } finally {
       setIsLoading(false);
     }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { formatINR } from "@/lib/utils";
 import {
   BarChart3,
@@ -107,8 +108,8 @@ export default function AnalyticsPage() {
       setCashflowTrends(cashRes.data.trends || []);
       setCashflowTotals(cashRes.data.totals || null);
       setAgingData(agingRes.data);
-    } catch (err) {
-      console.error("Failed to load analytics data:", err);
+    } catch (err: any) {
+      logger.warn("DATA", "Failed to load analytics data", err?.message);
     } finally {
       setIsLoading(false);
     }

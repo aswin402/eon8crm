@@ -50,11 +50,19 @@ api.interceptors.response.use(
     const duration = startTime ? Math.round(performance.now() - startTime) : 0;
     const status = error.response?.status || "NETWORK_ERR";
 
-    logger.error(
-      "API",
-      `✖ ${status} ${error.config?.method?.toUpperCase()} ${error.config?.url} (${duration}ms) - ${error.message}`,
-      error.response?.data
-    );
+    const isExpectedAuthCheck =
+      (error.response?.status === 401 || error.response?.status === 404) &&
+      error.config?.url?.includes("/auth/me");
+
+    if (isExpectedAuthCheck) {
+      logger.info("AUTH", `Unauthenticated visitor on ${error.config?.url} (${status})`);
+    } else {
+      logger.warn(
+        "API",
+        `✖ ${status} ${error.config?.method?.toUpperCase()} ${error.config?.url} (${duration}ms) - ${error.message}`,
+        error.response?.data
+      );
+    }
 
     if (typeof window !== "undefined" && error.response?.status === 401) {
       localStorage.removeItem("eon8_token");

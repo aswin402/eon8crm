@@ -34,7 +34,7 @@ export default function DashboardPage() {
         setDashboardData(res.data);
       })
       .catch((err) => {
-        console.error("Dashboard error:", err);
+        logger.warn("DATA", "Dashboard fetch skipped or unauthenticated", err?.message);
       })
       .finally(() => {
         setLoading(false);

@@ -21,6 +21,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { formatINR, formatDate, formatDateTime } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import { DEFAULT_ORGANIZATION_CONFIG } from "@/config/organization";
@@ -93,7 +94,7 @@ export default function PublicProposalPortalPage() {
         }
       })
       .catch((err) => {
-        console.error("Failed to load quotation:", err);
+        logger.warn("DATA", "Failed to load quotation", err?.message);
         setError(err.response?.data?.error || "This proposal link is invalid or has expired.");
       })
       .finally(() => setLoading(false));
@@ -124,7 +125,7 @@ export default function PublicProposalPortalPage() {
       setShowSignModal(false);
       toast.success("Proposal digitally accepted and confirmed!");
     } catch (err: any) {
-      console.error("Signing failed:", err);
+      logger.warn("FORM", "Signing failed", err?.message);
       toast.error(err.response?.data?.error || "Failed to digitally accept proposal");
     } finally {
       setSubmitting(false);

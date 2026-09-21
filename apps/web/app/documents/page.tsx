@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import {
   FolderLock,
   FileText,
@@ -39,8 +40,8 @@ export default function DocumentsPage() {
     try {
       const res = await api.get("/api/v1/clients/documents/all");
       setDocuments(res.data.documents || []);
-    } catch (err) {
-      console.error("Failed to load documents:", err);
+    } catch (err: any) {
+      logger.warn("DATA", "Failed to load documents", err?.message);
     } finally {
       setIsLoading(false);
     }

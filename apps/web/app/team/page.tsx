@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { formatINR } from "@/lib/utils";
 import { EditUserModal } from "@/components/team";
 import {
@@ -60,7 +61,7 @@ export default function TeamPage() {
       const res = await api.get("/api/v1/users");
       setUsers(res.data.users || []);
     } catch (err: any) {
-      console.error("Failed to load users:", err);
+      logger.warn("DATA", "Failed to load users", err?.message);
     } finally {
       setIsLoading(false);
     }

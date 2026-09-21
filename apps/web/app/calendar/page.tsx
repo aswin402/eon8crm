@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { formatINR } from "@/lib/utils";
 import {
   Calendar as CalendarIcon,
@@ -46,8 +47,8 @@ export default function CalendarPage() {
     try {
       const res = await api.get("/api/v1/calendar/events");
       setEvents(res.data.events || []);
-    } catch (err) {
-      console.error("Failed to load calendar events:", err);
+    } catch (err: any) {
+      logger.warn("DATA", "Failed to load calendar events", err?.message);
     } finally {
       setIsLoading(false);
     }
