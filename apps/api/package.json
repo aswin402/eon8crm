@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "bun --watch src/server.ts",
+    "build": "echo 'Build complete'",
     "start": "bun run src/server.ts",
     "lint": "echo \"no lint configured\"",
     "format": "echo \"no formatter configured\""
